@@ -1,0 +1,102 @@
+import logging
+
+from pykka.gevent import GeventActor
+from redis import Redis, RedisError
+from uuid import uuid4
+import json
+
+from chouette import ChouetteConfig
+from chouette._messages import (
+    CollectKeys,
+    CollectValues,
+    DeleteRecords,
+    StoreWrappedMetrics,
+)
+
+logger = logging.getLogger("chouette")
+
+
+class RedisHandler(GeventActor):
+    def __init__(self):
+        super().__init__()
+        config = ChouetteConfig()
+        self.redis_client = Redis(host=config.redis_host, port=config.redis_port)
+
+    def on_receive(self, message):
+        if isinstance(message, CollectKeys):
+            return self.collect_keys(message)
+
+        if isinstance(message, CollectValues):
+            return self.collect_values(message)
+
+        if isinstance(message, DeleteRecords):
+            return self.delete_records(message)
+
+        if isinstance(message, StoreWrappedMetrics):
+            return self.store_wrapped_metrics(message)
+
+    def collect_keys(self, request) -> list:
+        set_type = "wrapped" if request.wrapped else "raw"
+        set_name = f"chouette:{set_type}:{request.data_type}.keys"
+        try:
+            keys = self.redis_client.zrange(set_name, 0, -1, withscores=True)
+        except RedisError:
+            keys = []
+        logger.debug(
+            "%s: Collected %s %s records keys from Redis.",
+            self.__class__.__name__,
+            len(keys),
+            request.data_type,
+        )
+        return keys
+
+    def collect_values(self, request) -> list:
+        queue_type = "wrapped" if request.wrapped else "raw"
+        hash_name = f"chouette:{queue_type}:{request.data_type}.values"
+        try:
+            raw_values = self.redis_client.hget(hash_name, *request.keys)
+            values = list(filter(None, raw_values))
+        except RedisError:
+            values = []
+        logger.debug(
+            "%s: Collected %s %s records from Redis.",
+            self.__class__.__name__,
+            len(request.keys),
+            request.data_type,
+        )
+        return values
+
+    def delete_records(self, request) -> bool:
+        pipeline = self.redis_client.pipeline()
+        queue_type = "wrapped" if request.wrapped else "raw"
+        set_name = f"chouette:{queue_type}:{request.data_type}.keys"
+        hash_name = f"chouette:{queue_type}:{request.data_type}.values"
+        pipeline.zrem(set_name, *request.keys)
+        pipeline.hdel(hash_name, *request.keys)
+        logger.debug(
+            "%s: Removing %s %s records from Redis.",
+            self.__class__.__name__,
+            len(request.keys),
+            request.data_type,
+        )
+        try:
+            pipeline.execute()
+        except RedisError:
+            return False
+        return True
+
+    def store_wrapped_metrics(self, request) -> bool:
+        pipeline = self.redis_client.pipeline()
+        for record in request.records:
+            record_key = str(uuid4())
+            # {"points": [[timestamp, value]], ... }
+            timestamp = int(request["points"][0][0])
+            pipeline.zadd("chouette:wrapped:metrics.keys", {record_key: timestamp})
+            pipeline.hset(
+                "chouette:wrapped:metrics.values", record_key, json.dumps(record)
+            )
+        try:
+            pipeline.execute()
+        except RedisError:
+            return False
+        return True

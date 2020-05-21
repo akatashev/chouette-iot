@@ -1,0 +1,6 @@
+gevent
+pydantic
+pykka
+python-json-logger
+redis
+requests
