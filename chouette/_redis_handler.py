@@ -1,17 +1,12 @@
+import json
 import logging
+from uuid import uuid4
 
 from pykka.gevent import GeventActor
 from redis import Redis, RedisError
-from uuid import uuid4
-import json
 
 from chouette import ChouetteConfig
-from chouette._messages import (
-    CollectKeys,
-    CollectValues,
-    DeleteRecords,
-    StoreWrappedMetrics,
-)
+from chouette._messages import CollectKeys, CollectValues, DeleteRecords, StoreMetrics
 
 logger = logging.getLogger("chouette")
 
@@ -32,7 +27,7 @@ class RedisHandler(GeventActor):
         if isinstance(message, DeleteRecords):
             return self.delete_records(message)
 
-        if isinstance(message, StoreWrappedMetrics):
+        if isinstance(message, StoreMetrics):
             return self.store_wrapped_metrics(message)
 
     def collect_keys(self, request) -> list:
@@ -86,15 +81,13 @@ class RedisHandler(GeventActor):
         return True
 
     def store_wrapped_metrics(self, request) -> bool:
+        set_name = f"chouette:wrapped:metrics.keys"
+        hash_name = f"chouette:wrapped:metrics.values"
         pipeline = self.redis_client.pipeline()
         for record in request.records:
             record_key = str(uuid4())
-            # {"points": [[timestamp, value]], ... }
-            timestamp = int(request["points"][0][0])
-            pipeline.zadd("chouette:wrapped:metrics.keys", {record_key: timestamp})
-            pipeline.hset(
-                "chouette:wrapped:metrics.values", record_key, json.dumps(record)
-            )
+            pipeline.zadd(set_name, {record_key: record.timestamp})
+            pipeline.hset(hash_name, record_key, json.dumps(record.asdict()))
         try:
             pipeline.execute()
         except RedisError:

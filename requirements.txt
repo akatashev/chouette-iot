@@ -4,3 +4,4 @@ pykka
 python-json-logger
 redis
 requests
+psutil

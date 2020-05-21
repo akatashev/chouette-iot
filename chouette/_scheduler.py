@@ -195,7 +195,7 @@ class Scheduler:
 
         try:
             if now > started:
-                print(func(*args))
+                func(*args)
             timer = spawn_later(
                 delay,
                 cls._execute_and_update_cancellable,

@@ -1,10 +1,12 @@
-from typing import Any, Dict, List
+from typing import Dict, List
+
 from pydantic import BaseSettings
 
 
 class ChouetteConfig(BaseSettings):
     api_key: str
-    chouette_tags: List[Dict[str, Any]]
+    chouette_tags: Dict[str, str]
+    collect_plugins: List[str]
     datadog_url: str = "https://api.datadoghq.com/api"
     interval_aggregate: int = 10
     interval_capture: int = 30

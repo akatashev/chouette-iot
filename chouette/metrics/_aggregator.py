@@ -84,10 +84,11 @@ class MetricsMerger:
         data = {}
         for metric in metrics_dicts:
             tags_list = cls.get_tags_list(metric)
-            if tags_list:
-                metric["tags"] = tags_list
             tags_string = "_".join(tags_list)
             key = f"{metric['name']}_{metric.get('type')}_{tags_string}"
+            if tags_list:
+                metric["tags"] = tags_list
+
             if key not in data:
                 data[key] = cls.generate_merged_structure(metric)
 
