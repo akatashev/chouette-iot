@@ -17,12 +17,12 @@ if __name__ == "__main__":
     logger.critical("Starting Chouette version %s.", VERSION)
     collector = MetricsCollector.start()
     aggregator = MetricsAggregator.start()
-    # metrics_collection = Scheduler.schedule_at_fixed_rate(0, 10, collector.tell, "collect")
+    metrics_collection = Scheduler.schedule_at_fixed_rate(0, 10, collector.tell, "collect")
     aggregation = Scheduler.schedule_at_fixed_rate(0, 15, aggregator.tell, "aggregate")
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        # metrics_collection.cancel()
+        metrics_collection.cancel()
         aggregation.cancel()
         ActorRegistry.stop_all()

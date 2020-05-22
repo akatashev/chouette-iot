@@ -10,5 +10,4 @@ def get_redis_handler():
     redis_handlers = ActorRegistry.get_by_class_name("RedisHandler")
     if redis_handlers:
         return redis_handlers.pop()
-    else:
-        return RedisHandler.start()
+    return RedisHandler.start()

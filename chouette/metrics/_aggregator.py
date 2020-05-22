@@ -52,7 +52,7 @@ class MetricsAggregator(GeventActor):
 class MetricsMerger:
     @staticmethod
     def group_metric_keys(
-        metric_keys: List[Tuple[Union[bytes, str]], float], interval: int
+        metric_keys: List[Tuple[Union[bytes, str], float]], interval: int
     ) -> Iterator:
         grouped = groupby(metric_keys, lambda record: record[1] // interval)
         keys = map(lambda group: list(map(lambda pair: pair[0], group[1])), grouped)
