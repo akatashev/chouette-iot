@@ -14,5 +14,5 @@ services:
     environment:
       - API_KEY=sdgdsgs
       - CHOUETTE_TAGS={"saasf":"asfsa"}
-      - COLLECT_PLUGINS=["host"]
+      - COLLECTOR_PLUGINS=["host"]
     command: bash

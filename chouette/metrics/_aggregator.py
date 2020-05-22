@@ -5,12 +5,13 @@ from functools import reduce
 from itertools import groupby
 from typing import Any, Iterator, List, Optional, Tuple, Union
 
-from pykka import ActorRef
 from pykka.gevent import GeventActor
 
-from chouette import ChouetteConfig, get_redis_handler
+from chouette import ChouetteConfig
 from chouette.messages import CollectKeys, CollectValues, DeleteRecords, StoreMetrics
-from chouette.metrics import MergedMetric, WrappedMetric
+from chouette.metrics import MergedMetric
+from chouette.metrics.wrappers import WrappersFactory
+from chouette.storages import RedisHandler
 
 logger = logging.getLogger("chouette")
 
@@ -22,31 +23,36 @@ class MetricsAggregator(GeventActor):
         super().__init__()
         config = ChouetteConfig()
         self.aggregate_interval = config.interval_aggregate
+        wrapper_name = config.metrics_wrapper
+        self.metrics_wrapper = WrappersFactory.get_wrapper(wrapper_name)
+        self.redis = None
 
-    def on_receive(self, message: Any) -> None:
-        redis_handler = get_redis_handler()
+    def on_receive(self, message: Any) -> bool:
+        if not self.metrics_wrapper:
+            logger.warning(
+                "No MetricsWrapper found. "
+                "Raw metrics are not collected and aggregated."
+            )
+            return False
+        self.redis = RedisHandler.get_instance()
 
-        keys = redis_handler.ask(CollectKeys("metrics"))
+        keys = self.redis.ask(CollectKeys("metrics"))
         grouped_keys = MetricsMerger.group_metric_keys(keys, self.aggregate_interval)
 
-        for keys_group in grouped_keys:
-            stored, cleaned = self._process_keys_group(keys_group, redis_handler)
+        return all(map(self._process_keys_group, grouped_keys))
 
-    @staticmethod
-    def _process_keys_group(
-        keys: List[Union[str, bytes]], redis_handler: ActorRef
-    ) -> Tuple[bool, bool]:
+    def _process_keys_group(self, keys: List[Union[str, bytes]]) -> bool:
         # Getting actual records from Redis and processing them:
-        records = redis_handler.ask(CollectValues("metrics", keys))
+        records = self.redis.ask(CollectValues("metrics", keys))
         merged_records = MetricsMerger.merge_metrics(records)
-        wrapped_records = MetricsWrapper.wrap_metrics(merged_records)
+        wrapped_records = self.metrics_wrapper.wrap_metrics(merged_records)
         # Storing processed messages to a "wrapped" queue and cleanup:
-        values_stored = redis_handler.ask(StoreMetrics(wrapped_records))
+        values_stored = self.redis.ask(StoreMetrics(wrapped_records))
         if values_stored:
-            cleaned_up = redis_handler.ask(DeleteRecords("metrics", keys))
+            cleaned_up = self.redis.ask(DeleteRecords("metrics", keys))
         else:
             cleaned_up = False
-        return values_stored, cleaned_up
+        return values_stored and cleaned_up
 
 
 class MetricsMerger:
@@ -61,7 +67,7 @@ class MetricsMerger:
     @classmethod
     def merge_metrics(cls, metrics: List[bytes]) -> List[MergedMetric]:
         dicts = cls._cast_metrics_to_dicts(metrics)
-        merged_metrics = map(lambda m: cls._produce_merged_metric(m), dicts)
+        merged_metrics = map(cls._produce_merged_metric, dicts)
 
         buffer = defaultdict(list)
         for key, metric in merged_metrics:
@@ -71,7 +77,7 @@ class MetricsMerger:
 
     @classmethod
     def _cast_metrics_to_dicts(cls, metrics) -> Iterator:
-        casted_metrics = map(lambda record: cls._get_metric_dict(record), metrics)
+        casted_metrics = map(cls._get_metric_dict, metrics)
         metrics = filter(None, casted_metrics)
         return metrics
 
@@ -105,52 +111,3 @@ class MetricsMerger:
         except TypeError:
             tags_list = []
         return sorted(tags_list)
-
-
-class MetricsWrapper:
-    """
-    Todo: Rewrite this class to support correct metric types.
-    """
-
-    @classmethod
-    def wrap_metrics(cls, merged_metrics):
-        if not merged_metrics:
-            return []
-        wrapped_metrics = map(cls._wrap_metric, merged_metrics)
-        return reduce(lambda a, b: a + b, wrapped_metrics)
-
-    @classmethod
-    def _wrap_metric(cls, merged_metric):
-        try:
-            timestamp, value = cls._calculate_metric_points(merged_metric)
-        except TypeError:
-            return []
-
-        metrics = [
-            WrappedMetric(
-                metric=merged_metric.name,
-                metric_type=merged_metric.type,
-                timestamp=timestamp,
-                value=value,
-                tags=merged_metric.tags,
-            )
-        ]
-        if merged_metric.type == "gauge":
-            metrics.append(
-                WrappedMetric(
-                    metric=f"{merged_metric.name}.count",
-                    metric_type=merged_metric.type,
-                    timestamp=timestamp,
-                    value=len(merged_metric.values),
-                    tags=merged_metric.tags,
-                )
-            )
-        return metrics
-
-    @staticmethod
-    def _calculate_metric_points(merged_metric) -> tuple:
-        values = merged_metric.values
-        value = reduce(lambda x, y: x + y, values)
-        if merged_metric.type != "count":
-            value = value / len(values)
-        return max(merged_metric.timestamps), value

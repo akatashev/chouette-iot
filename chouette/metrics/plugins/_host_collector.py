@@ -3,14 +3,14 @@ chouette.metrics.plugins.HostStatsCollector
 """
 import time
 from collections import namedtuple
-from functools import reduce
 from itertools import chain
-from typing import Any, Iterator
+from typing import Iterator
 
 import psutil
 from pykka.gevent import GeventActor
 
 from ._collector_plugin import CollectorPlugin
+from .messages import StatsRequest, StatsResponse
 
 
 class HostStatsCollector(GeventActor):
@@ -18,23 +18,25 @@ class HostStatsCollector(GeventActor):
     Actor that collects host data like RAM, CPU and HDD usage.
     """
 
-    def on_receive(self, message: Any) -> Iterator:
+    def on_receive(self, message: StatsRequest):
         """
-        On message receive collects data from specified
-        collection methods and returns an Iterator with
-        their values.
+        On StatsRequest message collects specified metrics and
+        sends them back in a StatsResponse message.
+
+        On any other message does nothing.
 
         Args:
-            message: Could be anything.
-        Returns: Iterator over WrappedMetric objects.
+            message: Expected to be a StatsRequest message.
         """
-        collection_methods = [
-            HostCollectorPlugin.get_cpu_percentage,
-            HostCollectorPlugin.get_fs_metrics,
-            HostCollectorPlugin.get_ram_metrics,
-        ]
-        metrics = map(lambda func: func(), collection_methods)
-        return chain.from_iterable(metrics)
+        if isinstance(message, StatsRequest):
+            collection_methods = [
+                HostCollectorPlugin.get_cpu_percentage,
+                HostCollectorPlugin.get_fs_metrics,
+                HostCollectorPlugin.get_ram_metrics,
+            ]
+            metrics = map(lambda func: func(), collection_methods)
+            stats = chain.from_iterable(metrics)
+            message.sender.tell(StatsResponse(self.__class__.__name__, stats))
 
 
 class HostCollectorPlugin(CollectorPlugin):

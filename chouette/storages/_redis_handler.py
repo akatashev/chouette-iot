@@ -1,7 +1,7 @@
 import json
 import logging
 from uuid import uuid4
-
+from pykka import ActorRegistry
 from pykka.gevent import GeventActor
 from redis import Redis, RedisError
 
@@ -16,6 +16,13 @@ class RedisHandler(GeventActor):
         super().__init__()
         config = ChouetteConfig()
         self.redis_client = Redis(host=config.redis_host, port=config.redis_port)
+
+    @classmethod
+    def get_instance(cls):
+        instances = ActorRegistry.get_by_class(cls)
+        if instances:
+            return instances.pop()
+        return cls.start()
 
     def on_receive(self, message):
         if isinstance(message, CollectKeys):
