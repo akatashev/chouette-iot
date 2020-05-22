@@ -2,7 +2,7 @@ import time
 from collections import namedtuple
 from functools import reduce
 from itertools import chain
-from typing import Iterator
+from typing import Any, Iterator
 
 import psutil
 from pykka.gevent import GeventActor
@@ -11,7 +11,7 @@ from ._collector_plugin import CollectorPlugin
 
 
 class HostStatsCollector(GeventActor):
-    def on_receive(self, message):
+    def on_receive(self, message: Any) -> Iterator:
         collection_methods = [
             HostCollectorPlugin.get_cpu_percentage,
             HostCollectorPlugin.get_fs_metrics,
