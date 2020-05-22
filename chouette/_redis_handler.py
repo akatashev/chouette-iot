@@ -6,7 +6,7 @@ from pykka.gevent import GeventActor
 from redis import Redis, RedisError
 
 from chouette import ChouetteConfig
-from chouette._messages import CollectKeys, CollectValues, DeleteRecords, StoreMetrics
+from chouette.messages import CollectKeys, CollectValues, DeleteRecords, StoreMetrics
 
 logger = logging.getLogger("chouette")
 
@@ -49,9 +49,11 @@ class RedisHandler(GeventActor):
         queue_type = "wrapped" if request.wrapped else "raw"
         hash_name = f"chouette:{queue_type}:{request.data_type}.values"
         try:
-            raw_values = self.redis_client.hget(hash_name, *request.keys)
-            values = list(filter(None, raw_values))
+            raw_values = self.redis_client.hmget(hash_name, *list(request.keys))
+            values = filter(None, raw_values)
         except RedisError:
+            # Todo: Fix error message
+            logger.error("Aggregation error.")
             values = []
         logger.debug(
             "%s: Collected %s %s records from Redis.",

@@ -1,6 +1,6 @@
-from ._wrapped_metric import WrappedMetric
+from ._metrics import WrappedMetric, MergedMetric
 from ._aggregator import MetricsAggregator
 from ._collector import MetricsCollector
 
 
-__all__ = ["MetricsAggregator", "MetricsCollector", "WrappedMetric"]
+__all__ = ["MetricsAggregator", "MetricsCollector", "WrappedMetric", "MergedMetric"]

@@ -1,12 +1,13 @@
 from pykka import ActorRegistry
-from ._host import HostCollectingPlugin
 
-__all__ = ["HostCollectingPlugin", "get_host_collector"]
+from ._host_collector import HostStatsCollector
+
+__all__ = ["HostStatsCollector", "get_host_collector"]
 
 
 def get_host_collector():
-    host_collectors = ActorRegistry.get_by_class(HostCollectingPlugin)
+    host_collectors = ActorRegistry.get_by_class(HostStatsCollector)
     if host_collectors:
         return host_collectors.pop()
     else:
-        return HostCollectingPlugin.start()
+        return HostStatsCollector.start()

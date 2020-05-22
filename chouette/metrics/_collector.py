@@ -1,15 +1,15 @@
 from pykka.gevent import GeventActor
-
+from functools import reduce
+from itertools import chain
 from chouette import get_redis_handler
-from chouette._messages import StoreMetrics
+from chouette.messages import StoreMetrics
 from chouette.metrics.plugins import get_host_collector
 
 
 class MetricsCollector(GeventActor):
     def on_receive(self, message):
-        collected_metrics = []
         plugins = [get_host_collector()]
-        for plugin in plugins:
-            collected_metrics.extend(plugin.ask("collect"))
+        mapped_metrics = map(lambda plugin: plugin.ask("collect"), plugins)
+        collected_metrics = reduce(lambda a, b: chain(a, b), mapped_metrics)
         if collected_metrics:
             get_redis_handler().tell(StoreMetrics(collected_metrics))
