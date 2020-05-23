@@ -9,12 +9,12 @@ from chouette import ChouetteConfig
 from chouette._singleton_actor import SingletonActor
 from chouette.metrics import MergedMetric
 from chouette.metrics.wrappers import WrappersFactory
-from chouette.storages import RedisHandler
+from chouette.storages import RedisStorage
 from chouette.storages.messages import (
     CollectKeys,
     CollectValues,
     DeleteRecords,
-    StoreMetrics,
+    StoreRecords,
 )
 
 logger = logging.getLogger("chouette")
@@ -39,7 +39,7 @@ class MetricsAggregator(SingletonActor):
                 "Raw metrics are not collected and aggregated."
             )
             return False
-        self.redis = RedisHandler.get_instance()
+        self.redis = RedisStorage.get_instance()
 
         keys = self.redis.ask(CollectKeys("metrics"))
         grouped_keys = MetricsMerger.group_metric_keys(keys, self.aggregate_interval)
@@ -51,9 +51,10 @@ class MetricsAggregator(SingletonActor):
         b_metrics = self.redis.ask(CollectValues("metrics", keys))
         merged_records = MetricsMerger.merge_metrics(b_metrics)
         wrapped_records = self.metrics_wrapper.wrap_metrics(merged_records)
-
         # Storing processed messages to a "wrapped" queue and cleanup:
-        values_stored = self.redis.ask(StoreMetrics(wrapped_records))
+        request = StoreRecords("metrics", wrapped_records, wrapped=True)
+        values_stored = self.redis.ask(request)
+        # Cleanup:
         if values_stored:
             cleaned_up = self.redis.ask(DeleteRecords("metrics", keys))
         else:

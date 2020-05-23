@@ -17,3 +17,11 @@ services:
       - GLOBAL_TAGS=["hostname:my_test"]
       - COLLECTOR_PLUGINS=["host"]
     command: bash
+
+  tests:
+    build: .
+    links:
+      - redis
+    environment:
+      - PYTHONPATH=/chouette
+    command: ["pytest", "-s", "-vvv", "--cov", "chouette", "--cov-report", "term-missing"]

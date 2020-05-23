@@ -9,9 +9,9 @@ from requests.exceptions import RequestException
 
 from chouette import ChouetteConfig
 from chouette._singleton_actor import SingletonActor
-from chouette.storages import RedisHandler
+from chouette.storages import RedisStorage
 from chouette.storages.messages import (
-    CleanupOutdated,
+    CleanupOutdatedRecords,
     CollectKeys,
     CollectValues,
     DeleteRecords,
@@ -42,9 +42,9 @@ class MetricsSender(SingletonActor):
 
     def on_receive(self, message: Any) -> bool:
         print("Sender triggered")
-        self.redis = RedisHandler.get_instance()
+        self.redis = RedisStorage.get_instance()
         # Cleaning up outdated metrics that DataDog will reject:
-        self.redis.ask(CleanupOutdated("metrics", self.metric_ttl))
+        self.redis.ask(CleanupOutdatedRecords("metrics", self.metric_ttl))
         # Collecting keys for valid metrics bulk:
         keys = self._collect_keys()
         if not keys:

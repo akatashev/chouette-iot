@@ -25,7 +25,7 @@ class WrappedMetric:
         tags: Optional[list] = None,
     ):
         self.metric = metric
-        self.timestamp = timestamp
+        self.timestamp = int(timestamp)
         self.value = value
         self.type = metric_type
         self.tags = tags if tags else []

@@ -1,12 +1,20 @@
 from typing import Iterable, List
 
+__all__ = [
+    "CleanupOutdatedRecords",
+    "CollectKeys",
+    "CollectValues",
+    "DeleteRecords",
+    "StoreRecords",
+]
 
-class CleanupOutdated:
-    __slots__ = ["data_type", "metric_ttl"]
 
-    def __init__(self, data_type: str, metric_ttl: int):
+class CleanupOutdatedRecords:
+    __slots__ = ["data_type", "ttl"]
+
+    def __init__(self, data_type: str, ttl: int):
         self.data_type = data_type
-        self.metric_ttl = metric_ttl
+        self.ttl = ttl
 
 
 class CollectKeys:
@@ -36,8 +44,10 @@ class DeleteRecords:
         self.wrapped = wrapped
 
 
-class StoreMetrics:
-    __slots__ = ["records"]
+class StoreRecords:
+    __slots__ = ["data_type", "records", "wrapped"]
 
-    def __init__(self, records: Iterable):
+    def __init__(self, data_type: str, records: Iterable, wrapped: bool = False):
         self.records = records
+        self.data_type = data_type
+        self.wrapped = wrapped

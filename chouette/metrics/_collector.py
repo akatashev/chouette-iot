@@ -7,10 +7,10 @@ from typing import Any
 from chouette._singleton_actor import SingletonActor
 
 from chouette import ChouetteConfig
-from chouette.storages.messages import StoreMetrics
+from chouette.storages.messages import StoreRecords
 from chouette.metrics.plugins import PluginsFactory
 from chouette.metrics.plugins.messages import StatsRequest, StatsResponse
-from chouette.storages import RedisHandler
+from chouette.storages import RedisStorage
 
 logger = logging.getLogger("chouette")
 
@@ -47,8 +47,8 @@ class MetricsCollector(SingletonActor):
         if isinstance(message, StatsResponse):
             sender = message.producer
             logger.debug("Storing collected metrics from %s plugin.", sender)
-            redis = RedisHandler.get_instance()
-            redis.tell(StoreMetrics(message.stats))
+            redis = RedisStorage.get_instance()
+            redis.tell(StoreRecords("metrics", message.stats, wrapped=True))
         else:
             plugins = map(PluginsFactory.get_plugin, self.plugins_list)
             for plugin in filter(None, plugins):

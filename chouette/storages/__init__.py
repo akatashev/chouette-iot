@@ -1,6 +1,6 @@
 """
 chouette.storages
 """
-from chouette.storages._redis_handler import RedisHandler
+from chouette.storages._redis import RedisStorage
 
-__all__ = ["RedisHandler"]
+__all__ = ["RedisStorage"]
