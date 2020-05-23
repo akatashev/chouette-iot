@@ -7,13 +7,13 @@ from itertools import chain
 from typing import Iterator
 
 import psutil
-from pykka.gevent import GeventActor
+from chouette._singleton_actor import SingletonActor
 
 from ._collector_plugin import CollectorPlugin
 from .messages import StatsRequest, StatsResponse
 
 
-class HostStatsCollector(GeventActor):
+class HostStatsCollector(SingletonActor):
     """
     Actor that collects host data like RAM, CPU and HDD usage.
     """

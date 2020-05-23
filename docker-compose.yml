@@ -13,6 +13,7 @@ services:
       - redis
     environment:
       - API_KEY=sdgdsgs
-      - CHOUETTE_TAGS={"saasf":"asfsa"}
+      - DATADOG_URL=http://localhost
+      - GLOBAL_TAGS=["hostname:my_test"]
       - COLLECTOR_PLUGINS=["host"]
     command: bash

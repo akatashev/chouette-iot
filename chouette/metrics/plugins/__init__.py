@@ -3,8 +3,7 @@ chouette.metrics.plugins
 """
 from typing import Optional
 
-from pykka import ActorRef, ActorRegistry
-from typing import Iterator
+from pykka import ActorRef
 
 from ._host_collector import HostStatsCollector
 
@@ -30,18 +29,4 @@ class PluginsFactory:
             plugin_class = HostStatsCollector
         else:
             return None
-        return cls._get_plugin(plugin_class)
-
-    @staticmethod
-    def _get_plugin(plugin_class):
-        """
-        Starts a plugin actor or gets a running instance from ActorRegistry.
-
-        Args:
-            plugin_class: Class of a plugin actor.
-        Returns: ActorRef.
-        """
-        plugin_actors = ActorRegistry.get_by_class(plugin_class)
-        if plugin_actors:
-            return plugin_actors.pop()
-        return plugin_class.start()
+        return plugin_class.get_instance()

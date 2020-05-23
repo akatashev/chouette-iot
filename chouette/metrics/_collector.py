@@ -4,10 +4,10 @@ MetricsCollector class.
 import logging
 from typing import Any
 
-from pykka.gevent import GeventActor
+from chouette._singleton_actor import SingletonActor
 
 from chouette import ChouetteConfig
-from chouette.messages import StoreMetrics
+from chouette.storages.messages import StoreMetrics
 from chouette.metrics.plugins import PluginsFactory
 from chouette.metrics.plugins.messages import StatsRequest, StatsResponse
 from chouette.storages import RedisHandler
@@ -15,7 +15,7 @@ from chouette.storages import RedisHandler
 logger = logging.getLogger("chouette")
 
 
-class MetricsCollector(GeventActor):
+class MetricsCollector(SingletonActor):
     """
     Actor that is responsible for collecting various stats from a machine
     and to store gathered data to Redis for later releasing.
@@ -43,6 +43,7 @@ class MetricsCollector(GeventActor):
         Args:
             message: Can be anything.
         """
+        print("Collector triggered")
         if isinstance(message, StatsResponse):
             sender = message.producer
             logger.debug("Storing collected metrics from %s plugin.", sender)
