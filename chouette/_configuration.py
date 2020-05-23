@@ -1,9 +1,22 @@
+"""
+chouette.ChouetteConfig
+"""
 from typing import List
 
 from pydantic import BaseSettings
 
+__all__ = ["ChouetteConfig"]
+
 
 class ChouetteConfig(BaseSettings):
+    """
+    Main application configuration.
+
+    Data is being collected from environment variables.
+    It's case-insensitive, so API_KEY variable will be
+    loaded as an api_key parameter.
+    """
+
     api_key: str
     global_tags: List[str]
     collector_plugins: List[str] = []

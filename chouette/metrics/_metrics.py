@@ -3,6 +3,8 @@ Metrics classes to handle metrics processing.
 """
 from typing import Optional
 
+__all__ = ["MergedMetric", "WrappedMetric"]
+
 
 class WrappedMetric:
     """

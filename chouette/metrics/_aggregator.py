@@ -17,9 +17,9 @@ from chouette.storages.messages import (
     StoreRecords,
 )
 
-logger = logging.getLogger("chouette")
-
 __all__ = ["MetricsAggregator"]
+
+logger = logging.getLogger("chouette")
 
 
 class MetricsAggregator(SingletonActor):

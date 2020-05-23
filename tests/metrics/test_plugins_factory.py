@@ -1,10 +1,10 @@
-from chouette.metrics.plugins import PluginsFactory
-from chouette.metrics.plugins import HostStatsCollector
-
 from pykka import ActorRef
 
+from chouette.metrics.plugins import HostStatsCollector
+from chouette.metrics.plugins import PluginsFactory
 
-def test_plugins_factory_returns_actor_ref():
+
+def test_plugins_factory_returns_actor_ref(post_test_actors_stop):
     """
     Plugins Factory returns an ActorRef of a plugin if it knows it.
 
@@ -17,7 +17,7 @@ def test_plugins_factory_returns_actor_ref():
     assert isinstance(response.actor_class, HostStatsCollector.__class__)
 
 
-def test_plugins_factory_returns_none():
+def test_plugins_factory_returns_none(post_test_actors_stop):
     """
     Plugins Factory returns None if it doesn't know what plugin to return.
 
@@ -25,5 +25,5 @@ def test_plugins_factory_returns_none():
     WHEN: Someone requests a plugin '~*{magic}*~' via a .get_plugin method.
     THEN: None is returned.
     """
-    response = PluginsFactory.get_plugin('~*{magic}*~')
+    response = PluginsFactory.get_plugin("~*{magic}*~")
     assert response is None

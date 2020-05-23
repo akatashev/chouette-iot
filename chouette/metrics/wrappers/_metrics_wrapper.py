@@ -8,6 +8,8 @@ from typing import List
 
 from chouette.metrics import MergedMetric, WrappedMetric
 
+__all__ = ["MetricsWrapper"]
+
 
 class MetricsWrapper(ABC):
     """

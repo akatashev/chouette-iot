@@ -6,6 +6,8 @@ from typing import Iterator, List, Optional, Tuple
 
 from chouette.metrics import WrappedMetric
 
+__all__ = ["CollectorPlugin"]
+
 
 class CollectorPlugin(ABC):
     """

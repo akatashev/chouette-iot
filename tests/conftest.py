@@ -1,6 +1,16 @@
 import pytest
+from pykka import ActorRegistry
 
 from chouette._singleton_actor import SingletonActor
+
+
+@pytest.fixture
+def post_test_actors_stop():
+    """
+    Stops all started actors after a test is finished.
+    """
+    yield True
+    ActorRegistry.stop_all()
 
 
 @pytest.fixture(scope="session")
@@ -19,6 +29,16 @@ def test_actor_class():
             return None
 
     return TestActor
+
+
+@pytest.fixture
+def test_actor(test_actor_class):
+    """
+    Test ActorRef fixture.
+    """
+    ref = test_actor_class.start()
+    yield ref
+    ref.stop()
 
 
 @pytest.fixture(scope="session")

@@ -1,3 +1,8 @@
+"""
+chouette.Scheduler object for Gevent-based systems.
+
+It won't work without patching time.sleep with gevent.sleep.
+"""
 import logging
 import time
 from threading import Lock
@@ -5,9 +10,9 @@ from typing import Any, Callable, Optional
 
 from gevent import spawn_later, Greenlet
 
-logger = logging.getLogger("chouette")
-
 __all__ = ["Scheduler", "Cancellable"]
+
+logger = logging.getLogger("chouette")
 
 
 class Cancellable:

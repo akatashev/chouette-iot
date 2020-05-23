@@ -17,6 +17,8 @@ from chouette.storages.messages import (
     DeleteRecords,
 )
 
+__all__ = ["MetricsSender"]
+
 logger = logging.getLogger("chouette")
 
 

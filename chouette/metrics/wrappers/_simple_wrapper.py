@@ -6,6 +6,8 @@ from functools import reduce
 from chouette.metrics import WrappedMetric
 from ._metrics_wrapper import MetricsWrapper
 
+__all__ = ["SimpleWrapper"]
+
 
 class SimpleWrapper(MetricsWrapper):
     """

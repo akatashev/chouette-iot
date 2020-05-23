@@ -1,3 +1,6 @@
+"""
+Main Chouette module definition.
+"""
 from chouette._scheduler import Cancellable, Scheduler
 from chouette._configuration import ChouetteConfig
 

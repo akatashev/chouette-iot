@@ -7,15 +7,16 @@ from pykka import ActorRegistry
 from chouette import Scheduler, ChouetteConfig
 from chouette.metrics import MetricsCollector, MetricsAggregator, MetricsSender
 
-VERSION = "0.0.1a"
 
 logger = logging.getLogger("chouette")
 
 if __name__ == "__main__":
-    logger.setLevel("INFO")
+    """
+    TODO: REFACTOR, REFACTOR, REFACTOR.
+    """
     gevent.monkey.patch_all()
-    logger.critical("Starting Chouette version %s.", VERSION)
     config = ChouetteConfig()
+    logger.setLevel(config.log_level)
     collector = MetricsCollector.start()
     aggregator = MetricsAggregator.start()
     sender = MetricsSender.start()

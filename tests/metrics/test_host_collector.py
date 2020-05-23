@@ -16,16 +16,6 @@ from chouette.metrics.plugins import HostStatsCollector
 from chouette.metrics.plugins.messages import StatsRequest, StatsResponse
 
 
-@pytest.fixture
-def test_actor(test_actor_class):
-    """
-    Test ActorRef fixture.
-    """
-    ref = test_actor_class.start()
-    yield ref
-    ref.stop()
-
-
 @pytest.fixture(scope="module")
 def collector_ref():
     """

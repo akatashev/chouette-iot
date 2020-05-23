@@ -1,6 +1,7 @@
 """
 chouette.metrics.plugins.HostStatsCollector
 """
+import logging
 import time
 from collections import namedtuple
 from itertools import chain
@@ -11,6 +12,10 @@ import psutil
 from chouette._singleton_actor import SingletonActor
 from ._collector_plugin import CollectorPlugin
 from .messages import StatsRequest, StatsResponse
+
+__all__ = ["HostStatsCollector"]
+
+logger = logging.getLogger("chouette")
 
 
 class HostStatsCollector(SingletonActor):
@@ -31,6 +36,7 @@ class HostStatsCollector(SingletonActor):
         Args:
             message: Expected to be a StatsRequest message.
         """
+        logger.debug("[%s] Received %s.", self.name, message)
         if isinstance(message, StatsRequest):
             collection_methods = [
                 HostCollectorPlugin.get_cpu_percentage,
