@@ -7,6 +7,7 @@ import time
 from typing import Any, List, Tuple, Union
 from uuid import uuid4
 
+from pydantic import BaseSettings
 from redis import Redis, RedisError
 
 from chouette._singleton_actor import SingletonActor
@@ -17,7 +18,6 @@ from chouette.storages.messages import (
     DeleteRecords,
     StoreRecords,
 )
-from pydantic import BaseSettings
 
 __all__ = ["RedisStorage"]
 
@@ -45,7 +45,7 @@ class RedisStorage(SingletonActor):
     Their keys are being stored in Sorted Sets sorted by timestamps.
 
     Records can be `raw` (unprocessed, received from clients) or `wrapped`
-    (processed, prepared to dispatch). They are being stored in different queues.
+    (prepared to dispatch). They are being stored in different queues.
 
     The queue for raw metrics is named like this:
     Sorted set: `chouette:raw:metrics.keys`.
@@ -54,8 +54,8 @@ class RedisStorage(SingletonActor):
     This pattern `chouette:(raw/wrapped):(record type).(keys/values)` is used
     for all the queues.
 
-    Is intentionally expected to be used with the `ask` pattern to ensure that
-    consumers always execute their logic in a correct order.
+    Is intentionally expected to be almost always used with `ask` pattern
+    to ensure that consumers always execute their logic in a correct order.
     """
 
     def __init__(self):
@@ -66,17 +66,21 @@ class RedisStorage(SingletonActor):
         config = RedisConfig()
         self.redis = Redis(host=config.redis_host, port=config.redis_port)
 
-    def on_receive(self, message: Any) -> Union[list, bool]:
+    def on_receive(self, message: Any) -> Union[list, bool, None]:
         """
         Messages handling routine.
 
         It takes any message, but it will actively process only valid
         storage messages from the `chouette.storages.messages` package.
 
+        All other messages do nothing and receive None if `ask` was used
+        to send them.
+
         Args:
             message: Anything. Expected to be a valid storage message.
         Returns: Either a List of bytes or a bool.
         """
+        logger.debug("[%s] Received %s.", self.name, message)
         if isinstance(message, CleanupOutdatedRecords):
             return self._cleanup_outdated(message)
 
@@ -92,6 +96,8 @@ class RedisStorage(SingletonActor):
         if isinstance(message, StoreRecords):
             return self._store_records(message)
 
+        return None
+
     def _cleanup_outdated(self, request: CleanupOutdatedRecords) -> bool:
         """
         Cleans up outdated records in a specified queue.
@@ -101,87 +107,191 @@ class RedisStorage(SingletonActor):
 
         Args:
             request: CleanupOutdated message with record type and TTL.
-        Returns: True if there were no Redis error during the task execution.
+        Returns: Boolean that says whether execution was successful.
         """
-        set_name = f"chouette:wrapped:{request.data_type}.keys"
-        hash_name = f"chouette:wrapped:{request.data_type}.values"
+        queue_name, set_name, hash_name = self._get_queue_names(request)
         threshold = time.time() - request.ttl
         try:
             outdated_keys = self.redis.zrangebyscore(set_name, 0, threshold)
-        except RedisError:
-            return False
-        pipeline = self.redis.pipeline()
-        pipeline.zremrangebyscore(set_name, 0, threshold)
-        pipeline.hdel(hash_name, *outdated_keys)
-        try:
+            pipeline = self.redis.pipeline()
+            pipeline.zremrangebyscore(set_name, 0, threshold)
+            pipeline.hdel(hash_name, *outdated_keys)
             pipeline.execute()
+            logger.debug(
+                "[%s] Cleaned %s outdated records from a queue `%s`.",
+                self.name,
+                len(outdated_keys),
+                queue_name,
+            )
         except RedisError:
+            logger.warning(
+                "[%s] Could not cleanup records in a queue '%s' due to a RedisError.",
+                self.name,
+                queue_name,
+            )
             return False
         return True
 
-    def _collect_keys(self, request: CollectKeys) -> List[Tuple[int, bytes]]:
-        set_type = "wrapped" if request.wrapped else "raw"
-        set_name = f"chouette:{set_type}:{request.data_type}.keys"
+    def _collect_keys(self, request: CollectKeys) -> List[Tuple[bytes, int]]:
+        """
+        Tries to collect keys from a specified queue.
+
+        CollectKeys message has the following properties:
+        * data_type - type of a queue, e.g.: 'metrics'.
+        * wrapped - whether that's a queue of processed records or not.
+        * amount - how many keys should be collected. 0 means `all of them`.
+
+        It returns a list of tuples with keys and their timestamps:
+        (key: bytes, timestamp: int).
+
+        Args:
+            request: CollectKeys message.
+        Returns: List of collected keys as tuples.
+        """
+        queue_name, set_name, hash_name = self._get_queue_names(request)
         try:
             keys = self.redis.zrange(set_name, 0, request.amount - 1, withscores=True)
         except RedisError:
-            keys = []
+            logger.warning(
+                "[%s] Could not collect keys from a queue '%s' due to a RedisError.",
+                self.name,
+                queue_name,
+            )
+            return []
         logger.debug(
-            "%s: Collected %s %s records keys from Redis.",
-            self.__class__.__name__,
+            "[%s] Collected %s keys from a queue '%s'.",
+            self.name,
             len(keys),
-            request.data_type,
+            queue_name,
         )
         return keys
 
     def _collect_values(self, request: CollectValues) -> List[bytes]:
-        queue_type = "wrapped" if request.wrapped else "raw"
-        hash_name = f"chouette:{queue_type}:{request.data_type}.values"
+        """
+        Tries to collect values by keys from a specified queue.
+
+        Receives a CollectValues message that contains a list of keys.
+        It goes to this queue's hash and gets corresponding records as bytes.
+
+        Args:
+            request: CollectValues message with specified keys.
+        Returns: List of collected values.
+        """
+        queue_name, set_name, hash_name = self._get_queue_names(request)
         try:
-            raw_values = self.redis.hmget(hash_name, *list(request.keys))
-            values = list(filter(None, raw_values))
+            raw_values = self.redis.hmget(hash_name, *request.keys)
+            values: List[bytes] = list(filter(None, raw_values))
         except RedisError:
-            values = []
+            logger.warning(
+                "[%s] Could not collect records from a queue '%s' due to a RedisError.",
+                self.name,
+                queue_name,
+            )
+            return []
         logger.debug(
-            "%s: Collected %s %s records from Redis.",
-            self.__class__.__name__,
-            len(request.keys),
-            request.data_type,
+            "[%s] Collected %s records from a queue '%s'.",
+            self.name,
+            len(values),
+            queue_name,
         )
         return values
 
     def _delete_records(self, request: DeleteRecords) -> bool:
+        """
+        Tries to delete records with specified keys.
+
+        Args:
+            request: DeleteRecords message with specified keys.
+        Returns: Boolean that says whether execution was successful.
+        """
+        queue_name, set_name, hash_name = self._get_queue_names(request)
         if not request.keys:
+            logger.debug(
+                "[%s] Nothing to delete from a queue '%s'.", self.name, queue_name
+            )
             return True
         pipeline = self.redis.pipeline()
-        queue_type = "wrapped" if request.wrapped else "raw"
-        set_name = f"chouette:{queue_type}:{request.data_type}.keys"
-        hash_name = f"chouette:{queue_type}:{request.data_type}.values"
         pipeline.zrem(set_name, *request.keys)
         pipeline.hdel(hash_name, *request.keys)
-        logger.debug(
-            "%s: Removing %s %s records from Redis.",
-            self.__class__.__name__,
-            len(request.keys),
-            request.data_type,
-        )
         try:
             pipeline.execute()
         except RedisError:
+            logger.warning(
+                "[%s] Could not remove %s records from a queue '%s' due to a RedisError.",
+                self.name,
+                len(request.keys),
+                queue_name,
+            )
             return False
+        logger.debug(
+            "[%s] Deleted %s records from a queue '%s'.",
+            self.name,
+            len(request.keys),
+            queue_name,
+        )
         return True
 
     def _store_records(self, request: StoreRecords) -> bool:
+        """
+        Tries to store received records to a queue.
+
+        It automatically generates a unique id for every record and stores
+        its content under this id both to a set and a hash.
+
+        If it can't cast one of the records to a dict via `asdict()` method,
+        it ignores this record and tries to store all other records.
+
+        Args:
+            request: StoreRecords with an iterable of suitable objects.
+        Returns: Boolean that says whether execution was successful.
+        """
+        queue_name, set_name, hash_name = self._get_queue_names(request)
         pipeline = self.redis.pipeline()
-        queue_type = "wrapped" if request.wrapped else "raw"
-        set_name = f"chouette:{queue_type}:{request.data_type}.keys"
-        hash_name = f"chouette:{queue_type}:{request.data_type}.values"
+        records_list = list(request.records)
+        stored_metrics = 0
+        for record in records_list:
+            record_key = str(uuid4())
+            try:
+                record_value = json.dumps(record.asdict())
+            except AttributeError:
+                continue
+            stored_metrics += 1
+            pipeline.zadd(set_name, {record_key: record.timestamp})
+            pipeline.hset(hash_name, record_key, record_value)
         try:
-            for record in request.records:
-                record_key = str(uuid4())
-                pipeline.zadd(set_name, {record_key: record.timestamp})
-                pipeline.hset(hash_name, record_key, json.dumps(record.asdict()))
             pipeline.execute()
-        except (AttributeError, RedisError):
+        except RedisError:
+            logger.warning(
+                "[%s] Could not store %s/%s records to queue '%s' due to a RedisError.",
+                self.name,
+                stored_metrics,
+                len(records_list),
+                queue_name,
+            )
             return False
+        logger.debug(
+            "[%s] Stored %s/%s records to a queue '%s'.",
+            self.name,
+            stored_metrics,
+            len(records_list),
+            queue_name,
+        )
         return True
+
+    @staticmethod
+    def _get_queue_names(request: Any) -> Tuple[str, str, str]:
+        """
+        Generates queue, set and hash name for a queue depending on a request.
+
+        Args:
+            request: One of `chouette.storage.messages` objects.
+        Return: Tuple of a queue name, a set name and a hash name as strings.
+        """
+        if hasattr(request, "wrapped"):
+            queue_type = "wrapped" if request.wrapped else "raw"
+        else:
+            queue_type = "wrapped"
+        queue_name = f"chouette:{queue_type}:{request.data_type}"
+        set_name = f"{queue_name}.keys"
+        hash_name = f"{queue_name}.values"
+        return queue_name, set_name, hash_name
