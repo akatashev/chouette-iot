@@ -41,17 +41,14 @@ class MetricsSender(SingletonActor):
         self.timeout = config.release_interval * 0.8
 
     def on_receive(self, message: Any) -> bool:
-        print("Sender triggered")
         self.redis = RedisStorage.get_instance()
-        # Cleaning up outdated metrics that DataDog will reject:
         self.redis.ask(CleanupOutdatedRecords("metrics", self.metric_ttl))
-        # Collecting keys for valid metrics bulk:
         keys = self._collect_keys()
         if not keys:
             return False
-        # Collecting actual metrics and casting them to JSON:
+
         metrics = self._collect_metrics(keys)
-        # Dispatching to Datadog.
+
         dispatched = self._dispatch_to_datadog(metrics)
         if dispatched:
             cleaned_up = self.redis.ask(DeleteRecords("metrics", keys, wrapped=True))

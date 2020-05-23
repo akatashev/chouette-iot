@@ -41,14 +41,14 @@ class MetricsAggregator(SingletonActor):
             return False
         self.redis = RedisStorage.get_instance()
 
-        keys = self.redis.ask(CollectKeys("metrics"))
+        keys = self.redis.ask(CollectKeys("metrics", wrapped=False))
         grouped_keys = MetricsMerger.group_metric_keys(keys, self.aggregate_interval)
 
         return all(map(self._process_keys_group, grouped_keys))
 
     def _process_keys_group(self, keys: List[Union[str, bytes]]) -> bool:
         # Getting actual records from Redis and processing them:
-        b_metrics = self.redis.ask(CollectValues("metrics", keys))
+        b_metrics = self.redis.ask(CollectValues("metrics", keys, wrapped=False))
         merged_records = MetricsMerger.merge_metrics(b_metrics)
         wrapped_records = self.metrics_wrapper.wrap_metrics(merged_records)
         # Storing processed messages to a "wrapped" queue and cleanup:
@@ -56,7 +56,7 @@ class MetricsAggregator(SingletonActor):
         values_stored = self.redis.ask(request)
         # Cleanup:
         if values_stored:
-            cleaned_up = self.redis.ask(DeleteRecords("metrics", keys))
+            cleaned_up = self.redis.ask(DeleteRecords("metrics", keys, wrapped=False))
         else:
             cleaned_up = False
 

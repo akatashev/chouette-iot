@@ -79,7 +79,7 @@ def test_redis_gets_keys_correctly(redis_actor, stored_keys):
     WHEN: CollectKeys message is sent to RedisStorage.
     THEN: It returns a list of tuples with these keys.
     """
-    message = msgs.CollectKeys("metrics")
+    message = msgs.CollectKeys("metrics", wrapped=False)
     collected_keys = redis_actor.ask(message)
     assert collected_keys == stored_keys
 
@@ -95,7 +95,7 @@ def test_redis_gets_values_correctly(redis_actor, raw_metrics_keys, stored_value
     """
     keys = [key for key, ts in raw_metrics_keys]
     expected_values = [value for key, value in stored_values]
-    message = msgs.CollectValues("metrics", keys)
+    message = msgs.CollectValues("metrics", keys, wrapped=False)
     collected_values = redis_actor.ask(message)
     assert collected_values == expected_values
 
@@ -165,14 +165,14 @@ def test_redis_deletes_records_correctly(redis_actor, stored_keys, stored_values
     AND: These values disappear from the values hash.
     """
     keys_records = [key for key, ts in stored_keys]
-    message = msgs.DeleteRecords("metrics", keys_records[0:-1])
+    message = msgs.DeleteRecords("metrics", keys_records[0:-1], wrapped=False)
     result = redis_actor.ask(message)
     assert result is True
     # Checks that it deleted records correctly:
-    keys = redis_actor.ask(msgs.CollectKeys("metrics"))
+    keys = redis_actor.ask(msgs.CollectKeys("metrics", wrapped=False))
     assert len(keys) == 1
     assert stored_keys[-1] in keys
-    values = redis_actor.ask(msgs.CollectValues("metrics", keys_records))
+    values = redis_actor.ask(msgs.CollectValues("metrics", keys_records, wrapped=False))
     assert len(values) == 1
     assert values[0] == stored_values[4][1]
 

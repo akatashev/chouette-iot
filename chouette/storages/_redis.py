@@ -24,6 +24,7 @@ __all__ = ["RedisStorage"]
 logger = logging.getLogger("chouette")
 
 
+# pylint: disable=too-few-public-methods
 class RedisConfig(BaseSettings):
     """
     RedisStorage environment configuration object.
@@ -148,7 +149,7 @@ class RedisStorage(SingletonActor):
             request: CollectKeys message.
         Returns: List of collected keys as tuples.
         """
-        queue_name, set_name, hash_name = self._get_queue_names(request)
+        queue_name, set_name, _ = self._get_queue_names(request)
         try:
             keys = self.redis.zrange(set_name, 0, request.amount - 1, withscores=True)
         except RedisError:
@@ -177,7 +178,7 @@ class RedisStorage(SingletonActor):
             request: CollectValues message with specified keys.
         Returns: List of collected values.
         """
-        queue_name, set_name, hash_name = self._get_queue_names(request)
+        queue_name, _, hash_name = self._get_queue_names(request)
         try:
             raw_values = self.redis.hmget(hash_name, *request.keys)
             values: List[bytes] = list(filter(None, raw_values))
