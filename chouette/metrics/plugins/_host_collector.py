@@ -7,8 +7,8 @@ from itertools import chain
 from typing import Iterator
 
 import psutil
-from chouette._singleton_actor import SingletonActor
 
+from chouette._singleton_actor import SingletonActor
 from ._collector_plugin import CollectorPlugin
 from .messages import StatsRequest, StatsResponse
 
@@ -16,9 +16,12 @@ from .messages import StatsRequest, StatsResponse
 class HostStatsCollector(SingletonActor):
     """
     Actor that collects host data like RAM, CPU and HDD usage.
+
+    NB: Collectors MUST interact with plugins via `tell` pattern.
+        `ask` pattern will return None.
     """
 
-    def on_receive(self, message: StatsRequest):
+    def on_receive(self, message: StatsRequest) -> None:
         """
         On StatsRequest message collects specified metrics and
         sends them back in a StatsResponse message.
@@ -36,7 +39,8 @@ class HostStatsCollector(SingletonActor):
             ]
             metrics = map(lambda func: func(), collection_methods)
             stats = chain.from_iterable(metrics)
-            message.sender.tell(StatsResponse(self.__class__.__name__, stats))
+            if hasattr(message.sender, "tell"):
+                message.sender.tell(StatsResponse(self.name, stats))
 
 
 class HostCollectorPlugin(CollectorPlugin):

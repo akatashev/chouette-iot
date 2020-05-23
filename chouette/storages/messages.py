@@ -44,6 +44,12 @@ class CleanupOutdatedRecords:
         self.data_type = data_type
         self.ttl = ttl
 
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return f"<{self.__class__.__name__}:{self.data_type}:ttl={self.ttl}>"
+
 
 class CollectKeys:
     """
@@ -65,6 +71,15 @@ class CollectKeys:
         self.amount = amount
         self.data_type = data_type
         self.wrapped = wrapped
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return (
+            f"<{self.__class__.__name__}:{self.data_type}:"
+            f"wrapped={self.wrapped}:amount={self.amount}>"
+        )
 
 
 class CollectValues:
@@ -88,6 +103,15 @@ class CollectValues:
         self.keys = keys
         self.wrapped = wrapped
 
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return (
+            f"<{self.__class__.__name__}:{self.data_type}:"
+            f"wrapped={self.wrapped}:number_of_keys={len(self.keys)}>"
+        )
+
 
 class DeleteRecords:
     """
@@ -108,6 +132,15 @@ class DeleteRecords:
         self.keys = keys
         self.wrapped = wrapped
 
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return (
+            f"<{self.__class__.__name__}:{self.data_type}:"
+            f"wrapped={self.wrapped}:number_of_keys={len(self.keys)}>"
+        )
+
 
 class StoreRecords:
     """
@@ -126,5 +159,14 @@ class StoreRecords:
                      E.g.: WrappedMetric.
         """
         self.data_type = data_type
-        self.records = records
+        self.records = list(records)
         self.wrapped = wrapped
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return (
+            f"<{self.__class__.__name__}:{self.data_type}:"
+            f"wrapped={self.wrapped}:number_of_records={len(self.records)}>"
+        )

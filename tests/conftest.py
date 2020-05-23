@@ -1,5 +1,25 @@
 import pytest
 
+from chouette._singleton_actor import SingletonActor
+
+
+@pytest.fixture(scope="session")
+def test_actor_class():
+    class TestActor(SingletonActor):
+        def __init__(self):
+            super().__init__()
+            self.messages = []
+
+        def on_receive(self, message):
+            if message == "messages":
+                return self.messages
+            if message == "messages count":
+                return len(self.messages)
+            self.messages.append(message)
+            return None
+
+    return TestActor
+
 
 @pytest.fixture(scope="session")
 def raw_metrics_keys():

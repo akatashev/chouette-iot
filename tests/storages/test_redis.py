@@ -280,3 +280,15 @@ def test_redis_returns_true_on_empty_actions(redis_actor, message):
     with patch.object(Redis, "execute_command", side_effect=RedisError):
         execution_result = redis_actor.ask(message)
     assert execution_result is True
+
+
+def test_redis_returns_none_on_unexpected_message(redis_actor):
+    """
+    RedisStorage returns None on unexpected message.
+
+    GIVEN: There is an unexpected message.
+    WHEN: It is sent to RedisStorage.
+    THEN: It returns None.
+    """
+    execution_result = redis_actor.ask("Are you bored of being so in-memory?")
+    assert execution_result is None
