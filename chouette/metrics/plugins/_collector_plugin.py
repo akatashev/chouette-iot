@@ -1,6 +1,7 @@
 """
 CollectorPlugin: Abstract class for all metric collectors.
 """
+# pylint: disable=too-few-public-methods
 from abc import ABC
 from typing import Iterator, List, Optional, Tuple
 
@@ -14,7 +15,6 @@ class CollectorPlugin(ABC):
     Abstract class for all metric collectors.
     """
 
-    # pylint: disable=too-few-public-methods
     @staticmethod
     def _wrap_metrics(
         metrics: List[Tuple[str, float]],

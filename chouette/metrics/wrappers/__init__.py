@@ -1,6 +1,7 @@
 """
 chouette.metrics.wrappers
 """
+# pylint: disable=too-few-public-methods
 from typing import Optional
 
 from ._metrics_wrapper import MetricsWrapper
@@ -14,7 +15,6 @@ class WrappersFactory:
     WrapperFactory class creates Metrics Wrapper instances.
     """
 
-    # pylint: disable=too-few-public-methods
     @classmethod
     def get_wrapper(cls, wrapper_name: str) -> Optional[MetricsWrapper]:
         """

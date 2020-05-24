@@ -3,11 +3,12 @@ chouette.metrics.plugins.messages
 
 Contains messages that Collectors and CollectorPlugins use to communicate.
 """
+# pylint: disable=too-few-public-methods
 from typing import Iterator
 
 from pykka import ActorRef
 
-# pylint: disable=too-few-public-methods
+
 __all__ = ["StatsRequest", "StatsResponse"]
 
 

@@ -1,6 +1,7 @@
 """
 Actor that handles all interactions with the Redis storage.
 """
+# pylint: disable=too-few-public-methods
 import json
 import logging
 import time
@@ -24,7 +25,6 @@ __all__ = ["RedisStorage"]
 logger = logging.getLogger("chouette")
 
 
-# pylint: disable=too-few-public-methods
 class RedisConfig(BaseSettings):
     """
     RedisStorage environment configuration object.

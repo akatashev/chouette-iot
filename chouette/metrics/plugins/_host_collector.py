@@ -2,7 +2,6 @@
 chouette.metrics.plugins.HostStatsCollector
 """
 import logging
-import time
 from collections import namedtuple
 from itertools import chain
 from typing import Iterator

@@ -1,6 +1,7 @@
 """
 chouette.metrics.plugins
 """
+# pylint: disable=too-few-public-methods
 from typing import Optional
 
 from pykka import ActorRef
@@ -15,7 +16,6 @@ class PluginsFactory:
     PluginsFactory class creates plugins actors and returns their ActorRefs.
     """
 
-    # pylint: disable=too-few-public-methods
     @classmethod
     def get_plugin(cls, plugin_name: str) -> Optional[ActorRef]:
         """

@@ -1,6 +1,8 @@
 """
 Metrics classes to handle metrics processing.
 """
+# pylint: disable=too-few-public-methods
+# pylint: disable=too-many-arguments
 import time
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -24,8 +26,8 @@ class SingleMetric(ABC):
         tags: Optional[list] = None,
     ):
         self.metric = metric
-        ts = timestamp if timestamp else time.time()
-        self.timestamp = int(ts)
+        t_stamp = timestamp if timestamp else time.time()
+        self.timestamp = int(t_stamp)
         self.value = value
         self.type = metric_type
         self.tags = tags if tags else []
@@ -34,10 +36,10 @@ class SingleMetric(ABC):
         return str(self.asdict())
 
     def __repr__(self):
-        return f"{self.__class__.__name__}: {self.__str__()}"
+        return f"<{self.__class__.__name__}: {self.__str__()}>"
 
     @abstractmethod
-    def asdict(self):
+    def asdict(self):  # pragma: no cover
         """
         Returns a dict form of the metric that is ready to be casted
         to JSON and stored for releasing.
@@ -87,7 +89,7 @@ class RawMetric(SingleMetric):
         Return: Dict that represents the metric.
         """
         return {
-            "metric": self.metric,
+            "name": self.metric,
             "tags": self.tags,
             "timestamp": self.timestamp,
             "value": self.value,
@@ -127,7 +129,7 @@ class MergedMetric:
         return str(self.asdict())
 
     def __repr__(self):
-        return f"{self.__class__.__name__}: {self.__str__()}"
+        return f"<{self.__class__.__name__}: {self.__str__()}>"
 
     def __add__(self, other):
         """
