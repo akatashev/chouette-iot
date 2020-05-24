@@ -18,7 +18,7 @@ class CollectorPlugin(ABC):
     @staticmethod
     def _wrap_metrics(
         metrics: List[Tuple[str, float]],
-        timestamp: float,
+        timestamp: float = None,
         tags: Optional[List[str]] = None,
         metric_type: str = "gauge",
     ) -> Iterator:

@@ -1,15 +1,264 @@
-from chouette.metrics import MetricsSender
+import json
+import time
+
 import pytest
+import requests_mock
+from pykka import ActorRegistry
+from requests.exceptions import ConnectTimeout
+
+from chouette import ChouetteConfig
+from chouette.metrics import MetricsSender
+from chouette.metrics import WrappedMetric
+from chouette.storages.messages import StoreRecords, CollectKeys
+from unittest.mock import patch
+from redis.client import Pipeline
+from redis import RedisError
 
 
 @pytest.fixture
-def sender_proxy(monkeypatch):
+def datadog_endpoint(monkeypatch):
+    """
+    Datadog host mocking fixture.
+    
+    On API Key `correct` it returns 202 Accepted.
+    On API Key `authfail` it returns 403 Authentication error.
+    On API Key `exc` it raises a ConnectTimeout exception.
+    """
+    monkeypatch.setenv("API_KEY", "correct")
+    monkeypatch.setenv("GLOBAL_TAGS", '["chouette:est:chouette"]')
+    monkeypatch.setenv("METRICS_BULK_SIZE", "3")
+    monkeypatch.setenv("DATADOG_URL", "https://choeutte-iot.mock")
+    datadog_url = ChouetteConfig().datadog_url
+    with requests_mock.mock() as mock:
+        mock.register_uri("POST", f"/v1/series?api_key=correct", status_code=202)
+        mock.register_uri("POST", f"/v1/series?api_key=authfail", status_code=403)
+        mock.register_uri("POST", f"/v1/series?api_key=exc", exc=ConnectTimeout)
+        yield datadog_url
+
+
+@pytest.fixture
+def sender_actor(monkeypatch, datadog_endpoint):
+    """
+    MetricsSender Actor fixture.
+    """
+    actor_ref = MetricsSender.get_instance()
+    yield actor_ref
+    ActorRegistry.stop_all()
+
+
+@pytest.fixture
+def sender_proxy(sender_actor):
     """
     MetricsSender Actor Proxy fixture for actor methods testing.
     """
-    monkeypatch.setenv("API_KEY", "whatever")
-    monkeypatch.setenv("COLLECTOR_PLUGINS", '["ice-cream", "berries"]')
-    actor_ref = MetricsSender.get_instance()
-    yield actor_ref.proxy()
-    actor_ref.stop()
+    return sender_actor.proxy()
 
+
+@pytest.fixture
+def stored_wrapped_keys(redis_client, metrics_keys):
+    """
+    Fixture that stores dummy wrapped metrics keys to Redis.
+
+    Before and after every test queue set is being cleaned up.
+    """
+    redis_client.delete("chouette:wrapped:metrics.keys")
+    for key, ts in metrics_keys:
+        redis_client.zadd("chouette:wrapped:metrics.keys", {key: ts})
+    yield metrics_keys
+    redis_client.delete("chouette:wrapped:metrics.keys")
+
+
+@pytest.fixture
+def expected_metrics(redis_client, sender_proxy):
+    """
+    Fixture that stores dummy wrapped metrics values to Redis and
+    returns expected metrics for `collect_metrics` method tests.
+
+    Before and after every test queue hash is being cleaned up.
+    """
+    redis_client.flushall()
+    metrics = [
+        WrappedMetric("metric-1", "count", 10, time.time() - 300, ["my:tag"]),
+        WrappedMetric("metric-2", "gauge", 20, time.time()),
+    ]
+    sender_proxy.redis.get().ask(StoreRecords("metrics", metrics, wrapped=True))
+    # Adding a "metric" that is not JSON parseable:
+    redis_client.zadd(
+        "chouette:wrapped:metrics.keys", {"wrong-metric-uid": time.time()}
+    )
+    redis_client.hset(
+        "chouette:wrapped:metrics.values", b"wrong-metric-uid", b"So wrong!"
+    )
+    # Generate expected metrics by adding global tags to tags fields.
+    global_tags = sender_proxy.tags.get()
+    dicts = [metric.asdict() for metric in metrics]
+    for metric in dicts:
+        metric["tags"] += global_tags
+    yield dicts
+    redis_client.flushall()
+
+
+def test_sender_returns_true(sender_actor, expected_metrics):
+    """
+    MetricsSender returns True after successful dispatch and
+    cleans up dispatched metrics.
+
+    GIVEN: There are metrics in a wrapped metrics queue.
+    AND: Everything is fine.
+    WHEN: MetricsSender receives a message.
+    THEN: It returns True.
+    AND: Dispatched metrics are removed from the queue.
+    """
+    result = sender_actor.ask("dispatch")
+    assert result is True
+    sender_proxy = sender_actor.proxy()
+    keys = sender_proxy.collect_keys().get()
+    assert not keys
+
+
+def test_sender_returns_true_on_no_keys(sender_actor, redis_client):
+    """
+    MetricsSender returns True if there is nothing to dispatch.
+
+    GIVEN: There are no metrics in a wrapped metrics queue.
+    WHEN: MetricsSender receives a message.
+    THEN: It returns True, because its work is finished successfully.
+    """
+    redis_client.flushall()
+    result = sender_actor.ask("dispatch")
+    assert result is True
+
+
+@pytest.mark.parametrize("api_key", ["authfail", "exc"])
+def test_sender_returns_false_on_dispatch_problems(
+    monkeypatch, expected_metrics, api_key, datadog_endpoint
+):
+    """
+    MetricsSender returns False on dispatch problems.
+
+    GIVEN: There are metrics in a wrapped metrics queue.
+    AND: For some reason request to Datadog doesn't return 202 Accepted.
+    WHEN: MetricsSender receives a message.
+    THEN: It returns False, because files were not dispatched.
+    AND: Metrics are not deleted from the queue.
+    """
+    monkeypatch.setenv("API_KEY", api_key)
+    ActorRegistry.stop_all()
+    sender_actor = MetricsSender.get_instance()
+    result = sender_actor.ask("dispatch")
+    assert result is False
+    sender_proxy = sender_actor.proxy()
+    keys = sender_proxy.collect_keys().get()
+    values = sender_proxy.collect_metrics(keys).get()
+    assert list(map(json.loads, values)) == expected_metrics
+
+
+def test_sender_returns_false_on_redis_problems(
+    monkeypatch, expected_metrics, sender_actor
+):
+    """
+    MetricsSender returns False on Redis problems during metrics cleanup.
+
+    GIVEN: There are metrics in a wrapped metrics queue.
+    AND: DataDog works fine and returns 202.
+    AND: On deletion attempt Redis returns RedisError
+    WHEN: MetricsSender receives a message.
+    THEN: It returns False, because files were not deleted.
+    """
+    with patch.object(Pipeline, "execute", side_effect=RedisError):
+        result = sender_actor.ask("dispatch")
+    assert result is False
+    sender_proxy = sender_actor.proxy()
+    keys = sender_proxy.collect_keys().get()
+    values = sender_proxy.collect_metrics(keys).get()
+    assert list(map(json.loads, values)) == expected_metrics
+
+
+def test_sender_collect_keys_returns_list_of_keys(sender_proxy, stored_wrapped_keys):
+    """
+    MetricsSender's `collect_keys` method returns a list of keys.
+
+    GIVEN: There are keys in a wrapped metrics set.
+    WHEN: Method `collect_keys` is called with amount 3.
+    THEN: It returns a list of bytes with 3 earliest keys.
+    """
+    expected_keys = [key for key, ts in stored_wrapped_keys]
+    result = sender_proxy.collect_keys().get()
+    assert result == expected_keys[0:3]
+
+
+def test_sender_collect_metrics_returns_list_of_processed_metrics(
+    sender_proxy, expected_metrics
+):
+    """
+    MetricsSender's `collect_metrics` methods returns a list of JSON
+    strings containing stored metrics whose tags are updated with global tags.
+
+    GIVEN: There are records in a wrapped metrics queue.
+    AND: One of the records is not a valid metric.
+    WHEN: Method `collect_metrics` is called with their keys.
+    THEN: It returns a list of strings.
+    AND: These strings represent previously stored metrics.
+    AND: Every metric has global tags added to its `tags` property.
+    AND: Invalid record is ignored.
+    """
+    keys = sender_proxy.collect_keys().get()
+    assert len(keys) == 3
+    values = sender_proxy.collect_metrics(keys).get()
+    dicts = list(map(json.loads, values))
+    assert dicts == expected_metrics
+    assert len(dicts) == 2
+
+
+def test_sender_dispatch_to_datadog(sender_proxy, expected_metrics):
+    """
+    MetricsSender `dispatch_to_datadog` returns True on 202 Accepted.
+
+    GIVEN: It's possible to connect to Datadog and api_key is correct.
+    WHEN: `dispatch_to_datadog` method is called for valid metrics.
+    THEN: True is returned when 202 Accepted response is received.
+    """
+    result = sender_proxy.dispatch_to_datadog(expected_metrics).get()
+    assert result is True
+
+
+@pytest.mark.parametrize("api_key", ["authfail", "exc"])
+def test_sender_dispatch_to_datadog_problem(monkeypatch, expected_metrics, api_key):
+    """
+    MetricsSender `dispatch_to_datadog` returns False on 403 Auth error or
+    Requests exception.
+
+    GIVEN: It's possible to connect to Datadog and api_key is incorrect.
+    WHEN: `dispatch_to_datadog` method is called for valid metrics.
+    THEN: False is returned if 202 Accepted wasn't returned.
+    """
+    monkeypatch.setenv("API_KEY", api_key)
+    ActorRegistry.stop_all()
+    sender_proxy = MetricsSender.get_instance().proxy()
+    result = sender_proxy.dispatch_to_datadog(expected_metrics).get()
+    assert result is False
+
+
+@pytest.mark.parametrize("send_self_metrics", [False, True])
+def test_sender_sends_self_metrics(monkeypatch, expected_metrics, send_self_metrics):
+    """
+    MetricsSender stores dispatched metrics number and size if
+    `send_self_metrics` option is set to True.
+
+    Scenario 1:
+    GIVEN: Option `send_self_metrics` is set to True.
+    WHEN: `dispatch_to_datadog` method is called and executed successfully.
+    THEN: 2 `chouette.metrics.dispatched` raw metrics are stored to Redis.
+
+    Scenario 2:
+    GIVEN: Option `send_self_metrics` is set to False.
+    WHEN: `dispatch_to_datadog` method is called and executed successfully.
+    THEN: No raw metrics are stored to Redis.
+    """
+    monkeypatch.setenv("SEND_SELF_METRICS", str(send_self_metrics))
+    ActorRegistry.stop_all()
+    sender_proxy = MetricsSender.get_instance().proxy()
+    sender_proxy.dispatch_to_datadog(expected_metrics).get()
+    redis = sender_proxy.redis.get()
+    keys = redis.ask(CollectKeys("metrics", wrapped=False))
+    assert (len(keys) == 2) is send_self_metrics

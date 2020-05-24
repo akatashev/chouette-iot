@@ -1,19 +1,16 @@
 """
 Metrics classes to handle metrics processing.
 """
+import time
+from abc import ABC, abstractmethod
 from typing import Optional
 
-__all__ = ["MergedMetric", "WrappedMetric"]
+__all__ = ["MergedMetric", "RawMetric", "WrappedMetric"]
 
 
-class WrappedMetric:
+class SingleMetric(ABC):
     """
-    Wrapped metric is a metric that is ready to be released.
-
-    Its timestamp and value are calculated and they form the only
-    data point that this metric contains.
-    It usually represents a calculated value of some metric for
-    some period of time.
+    Abstract class for both Wrapped and Raw metrics.
     """
 
     __slots__ = ["metric", "tags", "timestamp", "value", "type"]
@@ -23,26 +20,42 @@ class WrappedMetric:
         metric: str,
         metric_type: str,
         value: float,
-        timestamp: float,
+        timestamp: float = None,
         tags: Optional[list] = None,
     ):
         self.metric = metric
-        self.timestamp = int(timestamp)
+        ts = timestamp if timestamp else time.time()
+        self.timestamp = int(ts)
         self.value = value
         self.type = metric_type
         self.tags = tags if tags else []
 
     def __str__(self):
-        """
-        Returns: A string representation of the metric as a dict.
-        """
         return str(self.asdict())
 
     def __repr__(self):
-        """
-        Returns: Class name and a string representation of the metric.
-        """
         return f"{self.__class__.__name__}: {self.__str__()}"
+
+    @abstractmethod
+    def asdict(self):
+        """
+        Returns a dict form of the metric that is ready to be casted
+        to JSON and stored for releasing.
+
+        Return: Dict that represents the metric.
+        """
+        pass
+
+
+class WrappedMetric(SingleMetric):
+    """
+    Wrapped metric is a metric that is ready to be released.
+
+    Its timestamp and value are calculated and they form the only
+    data point that this metric contains.
+    It usually represents a calculated value of some metric for
+    some period of time.
+    """
 
     def asdict(self):
         """
@@ -55,6 +68,29 @@ class WrappedMetric:
             "metric": self.metric,
             "tags": self.tags,
             "points": [[self.timestamp, self.value]],
+            "type": self.type,
+        }
+
+
+class RawMetric(SingleMetric):
+    """
+    Raw metric is a metric that needs to be processed to be released.
+
+    It's used to store self metrics and represents a single metric datapoint.
+    """
+
+    def asdict(self):
+        """
+        Returns a dict form of the metric that is ready to be casted
+        to JSON and stored for releasing.
+
+        Return: Dict that represents the metric.
+        """
+        return {
+            "metric": self.metric,
+            "tags": self.tags,
+            "timestamp": self.timestamp,
+            "value": self.value,
             "type": self.type,
         }
 
@@ -88,15 +124,9 @@ class MergedMetric:
         self.tags = tags if tags else []
 
     def __str__(self):
-        """
-        Returns: A string representation of the metric as a dict.
-        """
         return str(self.asdict())
 
     def __repr__(self):
-        """
-        Returns: Class name and a string representation of the metric.
-        """
         return f"{self.__class__.__name__}: {self.__str__()}"
 
     def __add__(self, other):

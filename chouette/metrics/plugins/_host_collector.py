@@ -68,12 +68,11 @@ class HostCollectorPlugin(CollectorPlugin):
         Returns: Iterator over WrappedMetric objects.
         """
         cpu_percentage = psutil.cpu_percent()
-        timestamp = time.time()
         if cpu_percentage != 0.0:
             collecting_metrics = [("host.cpu.percentage", cpu_percentage)]
         else:
             collecting_metrics = []
-        return cls._wrap_metrics(collecting_metrics, timestamp)
+        return cls._wrap_metrics(collecting_metrics)
 
     @classmethod
     def get_fs_metrics(cls) -> Iterator:
@@ -116,12 +115,11 @@ class HostCollectorPlugin(CollectorPlugin):
         """
         tags = [f"device:{filesystem.device}"]
         fs_usage = psutil.disk_usage(filesystem.mountpoint)
-        timestamp = time.time()
         collecting_metrics = [
             ("host.fs.used", fs_usage.used),
             ("host.fs.free", fs_usage.free),
         ]
-        return cls._wrap_metrics(collecting_metrics, timestamp, tags)
+        return cls._wrap_metrics(collecting_metrics, tags=tags)
 
     @classmethod
     def get_ram_metrics(cls) -> Iterator:
@@ -138,9 +136,8 @@ class HostCollectorPlugin(CollectorPlugin):
         Returns: Iterator over WrappedMetric objects.
         """
         memory = psutil.virtual_memory()
-        timestamp = time.time()
         collecting_metrics = [
             ("host.memory.used", memory.used),
             ("host.memory.available", memory.available),
         ]
-        return cls._wrap_metrics(collecting_metrics, timestamp)
+        return cls._wrap_metrics(collecting_metrics)

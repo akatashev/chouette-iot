@@ -12,12 +12,14 @@ from requests.exceptions import RequestException
 
 from chouette import ChouetteConfig
 from chouette._singleton_actor import SingletonActor
+from chouette.metrics import RawMetric
 from chouette.storages import RedisStorage
 from chouette.storages.messages import (
     CleanupOutdatedRecords,
     CollectKeys,
     CollectValues,
     DeleteRecords,
+    StoreRecords,
 )
 
 __all__ = ["MetricsSender"]
@@ -39,7 +41,8 @@ class MetricsSender(SingletonActor):
 
         * api_key: Datadog API key.
         * bulk_size: How many metrics we want to send in one bulk at max.
-            Default value is 10000. #TODO: Evaluate size of 10000 metrics.
+            Default value is 10000. Size of compressed chunk of 10000 metrics
+            is around 150KBs. Increase it if your device connection is fast.
         * datadog_url: Datadog URL. It has a default value.
         * metric_ttl: Datadog drops outdated metric, so we clean them before
             sending data. This option says how many seconds is considered
@@ -56,7 +59,7 @@ class MetricsSender(SingletonActor):
         self.bulk_size = config.metrics_bulk_size
         self.datadog_url = config.datadog_url
         self.metric_ttl = config.metric_ttl
-        self.redis = None
+        self.redis = RedisStorage.get_instance()
         self.send_self_metrics = config.send_self_metrics
         self.tags = config.global_tags
         self.timeout = int(config.release_interval * 0.8)
@@ -80,20 +83,21 @@ class MetricsSender(SingletonActor):
         """
         self.redis = RedisStorage.get_instance()
         self.redis.ask(CleanupOutdatedRecords("metrics", self.metric_ttl))
-        keys = self._collect_keys()
+        keys = self.collect_keys()
         if not keys:
             logger.info("[%s] Nothing to dispatch.", self.name)
-            return False
-        metrics = self._collect_metrics(keys)
-        dispatched = self._dispatch_to_datadog(metrics)
+            return True
+        metrics = self.collect_metrics(keys)
+        dispatched = self.dispatch_to_datadog(metrics)
         if dispatched:
             cleaned_up = self.redis.ask(DeleteRecords("metrics", keys, wrapped=True))
         else:
+            logger.error("[%s] Metrics were dispatched, but not cleaned up!", self.name)
             cleaned_up = False
 
         return dispatched and cleaned_up
 
-    def _add_global_tags(self, b_metric: bytes) -> Optional[str]:
+    def add_global_tags(self, b_metric: bytes) -> Optional[str]:
         """
         Takes a bytes objects that is expected to represent a JSON object,
         casts it to an object, adds global tags to the list of tags and
@@ -111,7 +115,7 @@ class MetricsSender(SingletonActor):
         d_metric["tags"] = d_metric.get("tags", []) + self.tags
         return json.dumps(d_metric)
 
-    def _collect_keys(self) -> List[bytes]:
+    def collect_keys(self) -> List[bytes]:
         """
         Requests a `self.bulk_size` amount of wrapped metrics keys from Redis.
 
@@ -125,7 +129,7 @@ class MetricsSender(SingletonActor):
         logger.debug("[%s] Collected %s keys.", self.name, len(keys_and_ts))
         return list(map(lambda pair: pair[0], keys_and_ts))
 
-    def _collect_metrics(self, keys: List[bytes]) -> List[str]:
+    def collect_metrics(self, keys: List[bytes]) -> List[str]:
         """
         Gets a list of metrics from Redis, adds global tags to them and prepare
         them to be dispatched to Datadog.
@@ -136,9 +140,9 @@ class MetricsSender(SingletonActor):
         """
         b_metrics = self.redis.ask(CollectValues("metrics", keys, wrapped=True))
         logger.debug("[%s] Collected %s metrics.", self.name, len(b_metrics))
-        return list(filter(None, map(self._add_global_tags, b_metrics)))
+        return list(filter(None, map(self.add_global_tags, b_metrics)))
 
-    def _dispatch_to_datadog(self, metrics: List[str]) -> bool:
+    def dispatch_to_datadog(self, metrics: List[str]) -> bool:
         """
         Dispatches metrics to Datadog as a "series" POST request.
 
@@ -157,12 +161,12 @@ class MetricsSender(SingletonActor):
         """
         series = json.dumps({"series": metrics})
         compressed_message = zlib.compress(series.encode())
-        metrics_number = len(metrics)
+        metrics_num = len(metrics)
         message_size = sys.getsizeof(compressed_message)
         logger.info(
             "[%s] Dispatching %s metrics. Sending around %s KBs of data.",
             self.name,
-            metrics_number,
+            metrics_num,
             int(message_size / 1024),
         )
         try:
@@ -192,6 +196,9 @@ class MetricsSender(SingletonActor):
             )
             return False
         if self.send_self_metrics:
-            # Todo: Send internal metrics.
-            pass
+            self_metrics = [
+                RawMetric("chouette.dispatched.metrics.number", "count", metrics_num),
+                RawMetric("chouette.dispatched.metrics.bytes", "count", message_size),
+            ]
+            self.redis.tell(StoreRecords("metrics", self_metrics, wrapped=False))
         return True

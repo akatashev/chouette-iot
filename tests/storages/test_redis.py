@@ -13,16 +13,6 @@ from chouette.storages import RedisStorage
 
 
 @pytest.fixture(scope="module")
-def redis_client():
-    """
-    Redis client fixture.
-    """
-    redis_host = os.environ.get("REDIS_HOST", "redis")
-    redis_port = os.environ.get("REDIS_PORT", "6379")
-    return Redis(host=redis_host, port=redis_port)
-
-
-@pytest.fixture(scope="module")
 def redis_actor():
     """
     Redis actor fixture.
@@ -34,21 +24,21 @@ def redis_actor():
 
 
 @pytest.fixture
-def stored_keys(redis_client, raw_metrics_keys):
+def stored_raw_keys(redis_client, metrics_keys):
     """
     Fixture that stores dummy raw metrics keys to Redis.
 
     Before and after every test queue set is being cleaned up.
     """
     redis_client.delete("chouette:raw:metrics.keys")
-    for key, ts in raw_metrics_keys:
+    for key, ts in metrics_keys:
         redis_client.zadd("chouette:raw:metrics.keys", {key: ts})
-    yield raw_metrics_keys
+    yield metrics_keys
     redis_client.delete("chouette:raw:metrics.keys")
 
 
 @pytest.fixture
-def stored_values(redis_client, raw_metrics_values):
+def stored_raw_values(redis_client, raw_metrics_values):
     """
     Fixture that stores dummy raw metrics values to Redis.
 
@@ -71,7 +61,7 @@ def redis_cleanup(redis_client):
     redis_client.flushall()
 
 
-def test_redis_gets_keys_correctly(redis_actor, stored_keys):
+def test_redis_gets_keys_correctly(redis_actor, stored_raw_keys):
     """
     Redis returns a list of tuples (record_uid, timestamp) on CollectKeys.
 
@@ -81,10 +71,10 @@ def test_redis_gets_keys_correctly(redis_actor, stored_keys):
     """
     message = msgs.CollectKeys("metrics", wrapped=False)
     collected_keys = redis_actor.ask(message)
-    assert collected_keys == stored_keys
+    assert collected_keys == stored_raw_keys
 
 
-def test_redis_gets_values_correctly(redis_actor, raw_metrics_keys, stored_values):
+def test_redis_gets_values_correctly(redis_actor, metrics_keys, stored_raw_values):
     """
     Redis returns a list of bytes-encoded record strings on CollectValues.
 
@@ -93,8 +83,8 @@ def test_redis_gets_values_correctly(redis_actor, raw_metrics_keys, stored_value
     WHEN: CollectValues message is sent to RedisStorage.
     THEN: It returns a list of bytes with these records.
     """
-    keys = [key for key, ts in raw_metrics_keys]
-    expected_values = [value for key, value in stored_values]
+    keys = [key for key, ts in metrics_keys]
+    expected_values = [value for key, value in stored_raw_values]
     message = msgs.CollectValues("metrics", keys, wrapped=False)
     collected_values = redis_actor.ask(message)
     assert collected_values == expected_values
@@ -154,7 +144,9 @@ def test_redis_drops_wrong_records_on_storing(redis_actor, redis_cleanup):
         assert metric.asdict() in values_dicts
 
 
-def test_redis_deletes_records_correctly(redis_actor, stored_keys, stored_values):
+def test_redis_deletes_records_correctly(
+    redis_actor, stored_raw_keys, stored_raw_values
+):
     """
     Redis removes records fom a specified queue correctly.
 
@@ -164,17 +156,17 @@ def test_redis_deletes_records_correctly(redis_actor, stored_keys, stored_values
     AND: These keys disappear from the keys set.
     AND: These values disappear from the values hash.
     """
-    keys_records = [key for key, ts in stored_keys]
+    keys_records = [key for key, ts in stored_raw_keys]
     message = msgs.DeleteRecords("metrics", keys_records[0:-1], wrapped=False)
     result = redis_actor.ask(message)
     assert result is True
     # Checks that it deleted records correctly:
     keys = redis_actor.ask(msgs.CollectKeys("metrics", wrapped=False))
     assert len(keys) == 1
-    assert stored_keys[-1] in keys
+    assert stored_raw_keys[-1] in keys
     values = redis_actor.ask(msgs.CollectValues("metrics", keys_records, wrapped=False))
     assert len(values) == 1
-    assert values[0] == stored_values[4][1]
+    assert values[0] == stored_raw_values[4][1]
 
 
 def test_redis_cleans_outdated_metrics_correctly(redis_actor, redis_cleanup):

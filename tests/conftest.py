@@ -1,7 +1,19 @@
 import pytest
 from pykka import ActorRegistry
+from redis import Redis
+import os
 
 from chouette._singleton_actor import SingletonActor
+
+
+@pytest.fixture(scope="session")
+def redis_client():
+    """
+    Redis client fixture.
+    """
+    redis_host = os.environ.get("REDIS_HOST", "redis")
+    redis_port = os.environ.get("REDIS_PORT", "6379")
+    return Redis(host=redis_host, port=redis_port)
 
 
 @pytest.fixture
@@ -42,7 +54,7 @@ def test_actor(test_actor_class):
 
 
 @pytest.fixture(scope="session")
-def raw_metrics_keys():
+def metrics_keys():
     return [
         (b"metric-uuid-1", 10),
         (b"metric-uuid-2", 12),
