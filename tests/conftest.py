@@ -35,7 +35,7 @@ def test_actor_class():
         def on_receive(self, message):
             if message == "messages":
                 return self.messages
-            if message == "messages count":
+            if message == "count":
                 return len(self.messages)
             self.messages.append(message)
             return None

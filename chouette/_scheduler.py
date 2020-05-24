@@ -85,16 +85,24 @@ class Cancellable:
 
 class Scheduler:
     """
-    A basic Pykka Scheduler service based on Akka Scheduler behaviour.
+    A basic Scheduler service based on Akka Scheduler behaviour.
 
-    Its main purpose is to `tell` a message to an actor after a specified
-    delay or to do it periodically. It isn't a long-term scheduler
-    and is expected to be used for retransmitting messages or to schedule
-    periodic startup of an actor-based data processing pipeline.
+    Its main purpose is to execute a specified actor once or periodically
+    after some delay.
     """
 
     @staticmethod
     def schedule_once(delay: float, func: Callable, *args: Any) -> Cancellable:
+        """
+        Takes a Callable function and its arguments and creates a timer to run
+        it after `delay` seconds.
+
+        Args:
+            delay: How many seconds Scheduler waits before executing a func.
+            func: Callable that must be executed.
+            args: Arguments for the function provided as func.
+        Returns: Cancellable object.
+        """
         timer = spawn_later(delay, func, *args)
         return Cancellable(timer)
 
@@ -102,6 +110,20 @@ class Scheduler:
     def schedule_at_fixed_rate(
         cls, initial_delay: float, interval: float, func: Callable, *args: Any
     ) -> Cancellable:
+        """
+        Takes a Callable function and its arguments and creates a timer to be
+        run every `interval` seconds.
+        This method is precise, so on every run it will try compensate time
+        drift to keep the interval between function executions precise.
+
+        Args:
+            initial_delay: How many seconds Scheduler waits before the first
+                           func execution.
+            interval: How many seconds must pass between periodic executions.
+            func: Callable that must be executed.
+            args: Arguments for the function provided as func.
+        Returns: Cancellable object.
+        """
         return cls._execute_periodically(
             initial_delay, interval, func, *args, precise=True
         )
@@ -110,6 +132,21 @@ class Scheduler:
     def schedule_with_fixed_delay(
         cls, initial_delay: float, delay: float, func: Callable, *args: Any
     ) -> Cancellable:
+        """
+        Takes a Callable function and its arguments and creates a timer to be
+        run every `interval` seconds.
+        This method is imprecise, so it doesn't try to compensate any time
+        drift between calls, so intervals between func executions can be
+        different and normally they are a bit longer than specified.
+
+        Args:
+            initial_delay: How many seconds Scheduler waits before the first
+                           func execution.
+            delay: How many seconds must pass between periodic executions.
+            func: Callable that must be executed.
+            args: Arguments for the function provided as func.
+        Returns: Cancellable object.
+        """
         return cls._execute_periodically(
             initial_delay, delay, func, *args, precise=False
         )
@@ -125,7 +162,7 @@ class Scheduler:
     ) -> Cancellable:
         """
         A generic method to handle both precise and imprecise versions of
-        periodical message sending.
+        periodical func executions.
 
         It returns a Cancellable object, that can anytime cancel scheduled
         executions by calling its `.cancel()` method. Its `._timer` property
@@ -137,8 +174,8 @@ class Scheduler:
         Args:
             initial_delay (float): How many seconds we wait before the first execution.
             interval (float): How many seconds we wait between executions.
-            receiver (ActorRef): Actor Reference of an addressee.
-            message (Any): Message to send to an addressee.
+            func: Callable that must be executed.
+            args: Arguments for the function provided as func.
             precise (bool): Defines whether the time drift should be compensated to keep
                             the fixed messaging rate.
         Returns: A Cancellable object.
@@ -173,7 +210,7 @@ class Scheduler:
     ) -> None:
         """
         A pseudo-callback function that creates a new Timer for the next
-        message delivery and updates a Cancellable object with this Timer
+        func execution and updates a Cancellable object with this Timer
         to keep the scheduled activity cancellable.
 
         If `started` parameter is not None, it tried to be as precise as
@@ -184,8 +221,8 @@ class Scheduler:
             cancellable (Cancellable): A previously returned object whose
                 `_timer` property we need to update.
             interval (float): How many seconds we wait between executions.
-            receiver (ActorRef): Actor Reference of an addressee.
-            message (Any): Message to send to an addressee.
+            func: Callable that must be executed.
+            args: Arguments for the function provided as func.
             started (Optional[float]): Unix timestamp that says when our
                 first execution was happened. If set, it's used to calculate
                 and compensate time drift between executions.

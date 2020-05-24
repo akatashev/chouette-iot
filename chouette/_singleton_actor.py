@@ -2,6 +2,7 @@
 SingletonActor class.
 """
 import logging
+import traceback as Traceback
 
 from pykka import ActorRegistry, ActorRef
 from pykka.gevent import GeventActor
@@ -37,7 +38,18 @@ class SingletonActor(GeventActor):
             return instances.pop()
         return cls.start()
 
-    def on_failure(self, exception_type, exception_value, traceback):
+    def on_failure(
+        self, exception_type: str, exception_value: str, traceback: Traceback
+    ) -> None:  # pragma: no cover
+        """
+        Logs an exception if the actor is crashed.
+
+        Args:
+            exception_type: Exception type as a string.
+            exception_value: Exception value as a string.
+            traceback: Traceback object.
+        Returns: None.
+        """
         logger.error(
             "[%s] Stopped with exception: %s: %s.",
             self.name,
