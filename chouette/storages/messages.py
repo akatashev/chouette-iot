@@ -109,7 +109,7 @@ class CollectValues:
     def __str__(self):
         return (
             f"<{self.__class__.__name__}:{self.data_type}:"
-            f"wrapped={self.wrapped}:number_of_keys={len(self.keys)}>"
+            f"wrapped={self.wrapped}:keys_number={len(self.keys)}>"
         )
 
 
@@ -138,7 +138,7 @@ class DeleteRecords:
     def __str__(self):
         return (
             f"<{self.__class__.__name__}:{self.data_type}:"
-            f"wrapped={self.wrapped}:number_of_keys={len(self.keys)}>"
+            f"wrapped={self.wrapped}:keys_number={len(self.keys)}>"
         )
 
 
@@ -168,5 +168,5 @@ class StoreRecords:
     def __str__(self):
         return (
             f"<{self.__class__.__name__}:{self.data_type}:"
-            f"wrapped={self.wrapped}:number_of_records={len(self.records)}>"
+            f"wrapped={self.wrapped}:records_number={len(self.records)}>"
         )

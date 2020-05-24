@@ -20,14 +20,16 @@ if __name__ == "__main__":
     collector = MetricsCollector.start()
     aggregator = MetricsAggregator.start()
     sender = MetricsSender.start()
-    metrics_collection = Scheduler.schedule_at_fixed_rate(0, config.capture_interval, collector.tell, "collect")
-    metrics_aggregation = Scheduler.schedule_at_fixed_rate(0, config.aggregate_interval, aggregator.tell, "aggregate")
-    metrics_release = Scheduler.schedule_at_fixed_rate(0, config.release_interval, sender.tell, "send")
+    timers = []
+    if config.collector_plugins:
+        collector = MetricsCollector.start()
+        timers.append(Scheduler.schedule_at_fixed_rate(0, config.capture_interval, collector.tell, "collect"))
+    timers.append(Scheduler.schedule_at_fixed_rate(0, config.aggregate_interval, aggregator.tell, "aggregate"))
+    timers.append(Scheduler.schedule_at_fixed_rate(0, config.release_interval, sender.tell, "send"))
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        metrics_collection.cancel()
-        metrics_aggregation.cancel()
-        metrics_release.cancel()
+        for timer in timers:
+            timer.cancel()
         ActorRegistry.stop_all()

@@ -33,7 +33,7 @@ def test_collect_values_str_and_repr():
     __str__ and __repr__  methods return the same string.
     """
     msg = CollectValues("sweets", keys=[b"1", b"2", b"2"], wrapped=False)
-    assert str(msg) == f"<CollectValues:sweets:wrapped=False:number_of_keys=3>"
+    assert str(msg) == f"<CollectValues:sweets:wrapped=False:keys_number=3>"
     assert repr(msg) == str(msg)
 
 
@@ -43,7 +43,7 @@ def test_delete_records_str_and_repr():
     __str__ and __repr__  methods return the same string.
     """
     msg = DeleteRecords("logs", keys=[b"3", b"2"], wrapped=False)
-    assert str(msg) == f"<DeleteRecords:logs:wrapped=False:number_of_keys=2>"
+    assert str(msg) == f"<DeleteRecords:logs:wrapped=False:keys_number=2>"
     assert repr(msg) == str(msg)
 
 
@@ -53,5 +53,5 @@ def test_store_records_str_and_repr():
     __str__ and __repr__  methods return the same string.
     """
     msg = StoreRecords("logs", records=iter([]), wrapped=False)
-    assert str(msg) == f"<StoreRecords:logs:wrapped=False:number_of_records=0>"
+    assert str(msg) == f"<StoreRecords:logs:wrapped=False:records_number=0>"
     assert repr(msg) == str(msg)
