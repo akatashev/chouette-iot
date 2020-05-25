@@ -78,8 +78,14 @@ def expected_metrics(redis_client, sender_proxy):
     """
     redis_client.flushall()
     metrics = [
-        WrappedMetric("metric-1", "count", 10, time.time() - 300, ["my:tag"]),
-        WrappedMetric("metric-2", "gauge", 20, time.time()),
+        WrappedMetric(
+            metric="metric-1",
+            type="count",
+            value=10,
+            timestamp=time.time() - 300,
+            tags=["my:tag"],
+        ),
+        WrappedMetric(metric="metric-2", type="gauge", value=20, timestamp=time.time()),
     ]
     sender_proxy.redis.get().ask(StoreRecords("metrics", metrics, wrapped=True))
     # Adding a "metric" that is not JSON parseable:
@@ -160,7 +166,7 @@ def test_sender_returns_false_on_redis_problems(
     MetricsSender returns False on Redis problems during metrics cleanup.
 
     GIVEN: There are metrics in a wrapped metrics queue.
-    AND: DataDog works fine and returns 202.
+    AND: Datadog works fine and returns 202.
     AND: On deletion attempt Redis returns RedisError
     WHEN: MetricsSender receives a message.
     THEN: It returns False, because files were not deleted.

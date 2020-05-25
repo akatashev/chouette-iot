@@ -169,11 +169,41 @@ class MetricsSender(SingletonActor):
             metrics_num,
             int(message_size / 1024),
         )
+        dispatched = self._post_to_datadog(compressed_message)
+        if not dispatched:
+            return False
+        if self.send_self_metrics:
+            self_metrics = [
+                RawMetric(
+                    metric="chouette.dispatched.metrics.number",
+                    type="count",
+                    value=metrics_num,
+                ),
+                RawMetric(
+                    metric="chouette.dispatched.metrics.bytes",
+                    type="count",
+                    value=message_size,
+                ),
+            ]
+            self.redis.tell(StoreRecords("metrics", self_metrics, wrapped=False))
+        return True
+
+    def _post_to_datadog(self, message: bytes) -> bool:
+        """
+        Implements actual HTTPS interaction with Datadog.
+
+        On message 202 Accepted returns True, on any other message or
+        RequestsException returns False and logs an error message.
+
+        Arg:
+            message: Compressed message to sent.
+        Return: Bool that shows whether the message was accepted.
+        """
         try:
             dd_response = requests.post(
                 f"{self.datadog_url}/v1/series",
                 params={"api_key": self.api_key},
-                data=compressed_message,
+                data=message,
                 headers={
                     "Content-Type": "application/json",
                     "Content-Encoding": "deflate",
@@ -195,10 +225,4 @@ class MetricsSender(SingletonActor):
                 error,
             )
             return False
-        if self.send_self_metrics:
-            self_metrics = [
-                RawMetric("chouette.dispatched.metrics.number", "count", metrics_num),
-                RawMetric("chouette.dispatched.metrics.bytes", "count", message_size),
-            ]
-            self.redis.tell(StoreRecords("metrics", self_metrics, wrapped=False))
         return True

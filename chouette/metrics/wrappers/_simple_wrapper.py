@@ -14,7 +14,7 @@ class SimpleWrapper(MetricsWrapper):
     SimpleWrapper class takes only two kinds of metrics:
     `count` and `gauge`.
 
-    Unlike standard DataDog, it doesn't send the last value for the `gauge`
+    Unlike standard Datadog, it doesn't send the last value for the `gauge`
     metric. Instead it sends an average value along with a count of metrics
     used to calculate this average value.
 
@@ -33,7 +33,7 @@ class SimpleWrapper(MetricsWrapper):
 
         metrics = [
             WrappedMetric(
-                metric=merged_metric.name,
+                metric=merged_metric.metric,
                 metric_type=merged_metric.type,
                 timestamp=timestamp,
                 value=value,
@@ -43,7 +43,7 @@ class SimpleWrapper(MetricsWrapper):
         if merged_metric.type == "gauge":
             metrics.append(
                 WrappedMetric(
-                    metric=f"{merged_metric.name}.count",
+                    metric=f"{merged_metric.metric}.count",
                     metric_type=merged_metric.type,
                     timestamp=timestamp,
                     value=len(merged_metric.values),

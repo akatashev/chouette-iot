@@ -34,7 +34,11 @@ class CollectorPlugin(ABC):
         """
         return map(
             lambda metric: WrappedMetric(
-                metric[0], metric_type, metric[1], timestamp, tags
+                metric=metric[0],
+                type=metric_type,
+                value=metric[1],
+                timestamp=timestamp,
+                tags=tags,
             ),
             metrics,
         )

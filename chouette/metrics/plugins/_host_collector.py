@@ -103,7 +103,7 @@ class HostCollectorPlugin(CollectorPlugin):
         Uses `disk_usage` method to get information about used
         and free storage on a specified filesystem.
         Using this data it's possible to calculate total filesystem
-        size or used space percentage in a DataDog dashboard itself.
+        size or used space percentage in a Datadog dashboard itself.
 
         See:
         https://psutil.readthedocs.io/en/latest/#psutil.disk_usage
@@ -127,7 +127,7 @@ class HostCollectorPlugin(CollectorPlugin):
 
         Wraps data about used and available physical memory. Using
         this data it's possible to calculate total memory amount and
-        memory usage percentage in a DataDog dashboard itself.
+        memory usage percentage in a Datadog dashboard itself.
 
         See:
         https://psutil.readthedocs.io/en/latest/#psutil.virtual_memory

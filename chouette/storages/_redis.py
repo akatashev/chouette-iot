@@ -103,7 +103,7 @@ class RedisStorage(SingletonActor):
         """
         Cleans up outdated records in a specified queue.
 
-        DataDog rejects metrics older than 4 hours (default TTL), so before
+        Datadog rejects metrics older than 4 hours (default TTL), so before
         trying to dispatch anything Chouette cleans up outdated metrics.
 
         Args:

@@ -16,7 +16,7 @@ class MetricsWrapper(ABC):
     MetricsWrapper is the very heart of the Aggregation system.
 
     Its purpose is to take "raw" metrics sent by other applications and to
-    cast them to standard DataDog metrics in a way that you prefer.
+    cast them to standard Datadog metrics in a way that you prefer.
 
     E.g.: When we use a @timer decorator in an application, in reality
     5 metrics are being sent instead of 1 or 2.
@@ -34,7 +34,7 @@ class MetricsWrapper(ABC):
         This is the only public method of a MetricsWrapper.
 
         It should take merged "raw" metrics and provide a list of wrapped
-        metrics ready to be sent to DataDog.
+        metrics ready to be sent to Datadog.
 
         Args:
             merged_metrics: List of MergedMetric objects with raw metrics.

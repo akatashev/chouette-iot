@@ -7,7 +7,7 @@ from typing import Any, Iterator, List, Optional, Tuple, Union
 
 from chouette import ChouetteConfig
 from chouette._singleton_actor import SingletonActor
-from chouette.metrics import MergedMetric
+from chouette.metrics import MergedMetric, RawMetric
 from chouette.metrics.wrappers import WrappersFactory
 from chouette.storages import RedisStorage
 from chouette.storages.messages import (
@@ -46,7 +46,7 @@ class MetricsAggregator(SingletonActor):
 
         return all(map(self._process_keys_group, grouped_keys))
 
-    def _process_keys_group(self, keys: List[Union[str, bytes]]) -> bool:
+    def _process_keys_group(self, keys: List[bytes]) -> bool:
         # Getting actual records from Redis and processing them:
         b_metrics = self.redis.ask(CollectValues("metrics", keys, wrapped=False))
         merged_records = MetricsMerger.merge_metrics(b_metrics)
@@ -66,59 +66,30 @@ class MetricsAggregator(SingletonActor):
 class MetricsMerger:
     @staticmethod
     def group_metric_keys(
-        metric_keys: List[Tuple[Union[bytes, str], float]], interval: int
-    ) -> Iterator:
+        metric_keys: List[Tuple[bytes, float]], interval: int
+    ) -> Iterator[List[bytes]]:
         grouped = groupby(metric_keys, lambda record: record[1] // interval)
         keys = map(lambda group: list(map(lambda pair: pair[0], group[1])), grouped)
         return keys
 
     @classmethod
     def merge_metrics(cls, b_metrics: List[bytes]) -> List[MergedMetric]:
-        d_metrics = cls._cast_metrics_to_dicts(b_metrics)
-        key_metric_pair = map(cls._get_merged_metric_pair, d_metrics)
-
-        buffer = defaultdict(list)
-        for key, metric in key_metric_pair:
-            buffer[key].append(metric)
-
-        merged_metrics = {
-            key: reduce(lambda a, b: a + b, metric) for key, metric in buffer.items()
-        }.values()
+        single_metrics = cls._cast_bytes_to_metrics(b_metrics)
+        grouped_metrics = groupby(single_metrics, key=lambda metric: f"{metric.name}_{metric.type}_{'_'.join(metric.tags)}")
+        merged_metrics = map(lambda group: reduce(lambda a, b: a + b, group), grouped_metrics)
         return list(merged_metrics)
 
     @classmethod
-    def _cast_metrics_to_dicts(cls, b_metrics: List[bytes]) -> Iterator:
-        casted_metrics = map(cls._get_metric_dict, b_metrics)
-        metrics = filter(None, casted_metrics)
+    def _cast_bytes_to_metrics(cls, b_metrics: List[bytes]) -> Iterator:
+        cast_metrics = map(cls._get_metric, b_metrics)
+        metrics = filter(None, cast_metrics)
         return metrics
 
     @staticmethod
-    def _get_metric_dict(b_metric: bytes) -> Optional[dict]:
+    def _get_metric(b_metric: bytes) -> Optional[MergedMetric]:
         try:
-            d_metric = json.loads(b_metric)
-        except (json.JSONDecodeError, TypeError):
-            d_metric = None
-        return d_metric
+            merged_metric = RawMetric(**json.loads(b_metric)).mergify()
+        except (json.JSONDecodeError, TypeError, KeyError):
+            merged_metric = None
+        return merged_metric
 
-    @classmethod
-    def _get_merged_metric_pair(cls, metric: dict) -> Tuple[str, MergedMetric]:
-        metric["tags"] = cls._get_tags_list(metric)
-        tags_string = "_".join(metric["tags"])
-        key = f"{metric['name']}_{metric.get('type')}_{tags_string}"
-        merged_metric = MergedMetric(
-            name=metric["name"],
-            metric_type=metric.get("type"),
-            values=[metric["value"]],
-            timestamps=[metric["timestamp"]],
-            tags=metric["tags"],
-        )
-        return key, merged_metric
-
-    @staticmethod
-    def _get_tags_list(metric: dict) -> list:
-        tags = metric.get("tags")
-        try:
-            tags_list = [f"{name}:{str(value)}" for name, value in tags]
-        except TypeError:
-            tags_list = []
-        return sorted(tags_list)

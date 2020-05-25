@@ -1,7 +1,8 @@
+import os
+
 import pytest
 from pykka import ActorRegistry
 from redis import Redis
-import os
 
 from chouette._singleton_actor import SingletonActor
 
@@ -56,11 +57,11 @@ def test_actor(test_actor_class):
 @pytest.fixture(scope="session")
 def metrics_keys():
     return [
-        (b"metric-uuid-1", 10),
-        (b"metric-uuid-2", 12),
-        (b"metric-uuid-3", 23),
-        (b"metric-uuid-4", 31),
-        (b"metric-uuid-5", 34),
+        (b"metric-uuid-1", 10),  # Keys group 1
+        (b"metric-uuid-2", 12),  # Keys group 1
+        (b"metric-uuid-3", 23),  # Keys group 2
+        (b"metric-uuid-4", 31),  # Keys group 3
+        (b"metric-uuid-5", 34),  # Keys group 3
     ]
 
 
@@ -77,7 +78,7 @@ def raw_metrics_values():
         ),
         (
             b"metric-uuid-3",
-            b'{"metric": "metric-3", "type": "gauge", "timestamp": 23, "value": 12, "tags": {"very": "important"}}',
+            b'{"metric": "metric-3", "type": "gauge", "timestamp": 23, "value": 12, "tags": [{"very": "important"}]}',
         ),
         (
             b"metric-uuid-4",

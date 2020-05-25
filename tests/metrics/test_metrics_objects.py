@@ -1,5 +1,8 @@
-from chouette.metrics import MergedMetric, RawMetric, WrappedMetric
+import time
+
 import pytest
+
+from chouette.metrics import MergedMetric, RawMetric, WrappedMetric
 
 
 def test_merged_metric_successfull_merge():
@@ -11,10 +14,14 @@ def test_merged_metric_successfull_merge():
     THEN: It returns a new MergedMetric of the same type with merged values
           and timestamps.
     """
-    metric1 = MergedMetric("name", "type", [1], [2], tags=["tag:1"])
-    metric2 = MergedMetric("name", "type", [3], [4], tags=["tag:1"])
+    metric1 = MergedMetric(
+        metric="name", type="type", values=[1], timestamps=[2], tags=["tag:1"]
+    )
+    metric2 = MergedMetric(
+        metric="name", type="type", values=[3], timestamps=[4], tags=["tag:1"]
+    )
     result = metric1 + metric2
-    assert result.name == "name"
+    assert result.metric == "name"
     assert result.type == "type"
     assert result.tags == ["tag:1"]
     assert result.timestamps == [2, 4]
@@ -29,8 +36,12 @@ def test_merged_metric_unsuccessful_merge():
     WHEN: One metric is added to another.
     THEN: ValueError exception is raised.
     """
-    metric1 = MergedMetric("name", "type1", [1], [2], tags=["tag:1"])
-    metric2 = MergedMetric("name", "type2", [3], [4], tags=["tag:1"])
+    metric1 = MergedMetric(
+        metric="name", type="type1", values=[1], timestamps=[2], tags=["tag:1"]
+    )
+    metric2 = MergedMetric(
+        metric="name", type="type2", values=[3], timestamps=[4], tags=["tag:1"]
+    )
     with pytest.raises(ValueError):
         metric1 + metric2
 
@@ -41,14 +52,20 @@ def test_merged_metric_str_and_repr():
     __str__, __repr__ and asdict tests.
     """
     expected_dict = {
-        "name": "mergedMetric",
+        "metric": "mergedMetric",
         "type": "count",
         "values": [1],
         "timestamps": [2],
         "tags": ["test:test"],
     }
 
-    metric = MergedMetric("mergedMetric", "count", [1], [2], tags=["test:test"])
+    metric = MergedMetric(
+        metric="mergedMetric",
+        type="count",
+        values=[1],
+        timestamps=[2],
+        tags=["test:test"],
+    )
     metric_dict = metric.asdict()
     assert metric_dict == expected_dict
     assert str(metric) == str(metric_dict)
@@ -61,14 +78,16 @@ def test_raw_metric_str_and_repr():
     __str__, __repr__ and asdict tests.
     """
     expected_dict = {
-        "name": "rawMetric",
+        "metric": "rawMetric",
         "type": "count",
         "value": 1,
         "timestamp": 2,
-        "tags": [],
+        "tags": {"tag": "nice"},
     }
 
-    metric = RawMetric("rawMetric", "count", 1, 2)
+    metric = RawMetric(
+        metric="rawMetric", type="count", value=1, timestamp=2, tags={"tag": "nice"}
+    )
     metric_dict = metric.asdict()
     assert metric_dict == expected_dict
     assert str(metric) == str(metric_dict)
@@ -87,8 +106,30 @@ def test_wrapped_metric_str_and_repr():
         "tags": [],
     }
 
-    metric = WrappedMetric("wrappedMetric", "count", 1, 2)
+    metric = WrappedMetric(metric="wrappedMetric", type="count", value=1, timestamp=2)
     metric_dict = metric.asdict()
     assert metric_dict == expected_dict
     assert str(metric) == str(metric_dict)
     assert repr(metric) == f"<WrappedMetric: {str(metric_dict)}>"
+
+
+def test_simple_metric_gets_timestamp():
+    """
+    SimpleMetric instances are expected to get an actual timestamp if
+    it didn't receive a "timestamp" keyword value.
+    """
+    now = time.time()
+    metric = WrappedMetric(metric="wrappedMetric", type="count", value=1)
+    assert metric.timestamp >= now
+
+
+@pytest.mark.parametrize("second_type, are_equal", [("count", True), ("gauge", False)])
+def test_simple_metric_equality(second_type, are_equal):
+    """
+    SimpleMetrics are considered equal if their dicts are equal.
+    """
+    metric1 = WrappedMetric(metric="wrappedMetric", type="count", value=1, timestamp=2)
+    metric2 = WrappedMetric(
+        metric="wrappedMetric", type=second_type, value=1, timestamp=2
+    )
+    assert (metric1 == metric2) is are_equal

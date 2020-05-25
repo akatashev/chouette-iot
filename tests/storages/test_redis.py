@@ -100,7 +100,13 @@ def test_redis_stores_records_correctly(redis_actor, redis_cleanup):
     AND: One record is being added to the queue keys.
     AND: The queue hash contains our metric under this key.
     """
-    metric = WrappedMetric("important-metric", "count", 3600, 10.5, ["importance:high"])
+    metric = WrappedMetric(
+        metric="important-metric",
+        type="count",
+        timestamp=3600,
+        value=36.6,
+        tags=["importance:high"],
+    )
     message = msgs.StoreRecords("metrics", [metric], wrapped=True)
     result = redis_actor.ask(message)
     assert result is True
@@ -124,10 +130,18 @@ def test_redis_drops_wrong_records_on_storing(redis_actor, redis_cleanup):
     AND: Only valid records are stored.
     """
     metric_1 = WrappedMetric(
-        "important-metric", "count", 3600, 36.6, ["importance:high"]
+        metric="important-metric",
+        type="count",
+        timestamp=3600,
+        value=36.6,
+        tags=["importance:high"],
     )
     metric_2 = WrappedMetric(
-        "important-metric", "count", 7200, 99.9, ["importance:high"]
+        metric="important-metric",
+        type="count",
+        timestamp=7200,
+        value=99.9,
+        tags=["importance:high"],
     )
     metrics = [metric_1, "dsgsadgag", metric_2, redis_actor]
     message = msgs.StoreRecords("metrics", metrics, wrapped=True)
@@ -173,7 +187,7 @@ def test_redis_cleans_outdated_metrics_correctly(redis_actor, redis_cleanup):
     """
     Redis cleans up outdated wrapped records correctly.
 
-    Too old metrics are rejected by DataDog, so they should be cleaned up
+    Too old metrics are rejected by Datadog, so they should be cleaned up
     before dispatching. CleanupOutdatedRecords cleans all the records older
     than specified 'ttl' value.
 
@@ -183,11 +197,11 @@ def test_redis_cleans_outdated_metrics_correctly(redis_actor, redis_cleanup):
     AND: All outdated metrics are deleted from the queue.
     """
     now = int(time.time())
-    metric_1 = WrappedMetric("a", "b", 10, now)
-    metric_2 = WrappedMetric("a", "b", 20, now - 7200)
+    metric_1 = WrappedMetric(metric="a", type="b", value=10)
+    metric_2 = WrappedMetric(metric="a", type="b", value=20, timestamp=now - 7200)
     metrics = [
-        WrappedMetric("a", "b", 30, now - 28000),
-        WrappedMetric("a", "b", 40, now - 14401),
+        WrappedMetric(metric="a", type="b", value=30, timestamp=now - 28000),
+        WrappedMetric(metric="a", type="b", value=40, timestamp=now - 14401),
         metric_1,
         metric_2,
     ]
@@ -233,7 +247,11 @@ def test_redis_returns_nil_on_failed_collections(redis_actor, message):
     [
         msgs.DeleteRecords("metrics", [b"key"], wrapped=False),
         msgs.StoreRecords("metrics", [b"not-a-valid-object"], wrapped=True),
-        msgs.StoreRecords("metrics", [WrappedMetric("a", "b", 1, 1)], wrapped=True),
+        msgs.StoreRecords(
+            "metrics",
+            [WrappedMetric(metric="a", type="b", timestamp=1, value=1)],
+            wrapped=True,
+        ),
         msgs.CleanupOutdatedRecords("metrics", 14400),
     ],
 )
