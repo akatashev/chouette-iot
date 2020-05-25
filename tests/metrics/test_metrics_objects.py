@@ -124,12 +124,21 @@ def test_simple_metric_gets_timestamp():
 
 
 @pytest.mark.parametrize("second_type, are_equal", [("count", True), ("gauge", False)])
-def test_simple_metric_equality(second_type, are_equal):
+def test_metrics_equality(second_type, are_equal):
     """
-    SimpleMetrics are considered equal if their dicts are equal.
+    Metrics are considered equal if their dicts are equal.
     """
     metric1 = WrappedMetric(metric="wrappedMetric", type="count", value=1, timestamp=2)
     metric2 = WrappedMetric(
         metric="wrappedMetric", type=second_type, value=1, timestamp=2
     )
     assert (metric1 == metric2) is are_equal
+
+
+@pytest.mark.parametrize("not_a_metric", [None, "Not a metric", 11011010])
+def test_comparing_a_metric_with_not_a_netric(not_a_metric):
+    """
+    Metric is never equal to a not metric object.
+    """
+    metric = RawMetric(metric="wrappedMetric", type="count", value=1)
+    assert metric != not_a_metric

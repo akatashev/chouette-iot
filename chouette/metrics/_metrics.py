@@ -3,45 +3,18 @@ Metrics classes to handle metrics processing.
 """
 # pylint: disable=too-few-public-methods
 import time
-from abc import ABC, abstractmethod
 from typing import Any, List
 
 __all__ = ["MergedMetric", "RawMetric", "WrappedMetric"]
 
 
-class SingleMetric(ABC):
+class Metric:
     """
-    Abstract class for both Wrapped and Raw metrics.
+    Base parent class for all the metrics.
     """
 
-    __slots__ = ["metric", "tags", "timestamp", "value", "type"]
+    __slots__ = ["metric", "type", "tags"]
 
-    def __init__(self, **kwargs: Any):
-        self.metric = kwargs["metric"]
-        self.type = kwargs["type"]
-        self.value = kwargs["value"]
-        self.timestamp = kwargs.get("timestamp", time.time())
-        self.tags = kwargs.get("tags", [])
-
-    def __str__(self):
-        return str(self.asdict())
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__}: {self.__str__()}>"
-
-    def __eq__(self, other) -> bool:
-        """
-        Metrics are considered equal if their dicts are equal.
-
-        Args:
-            other: Another SingleMetric object to compare.
-        Return: Whether their dicts are equal.
-        """
-        if hasattr(other, "asdict"):
-            return self.asdict() == other.asdict()
-        return False
-
-    @abstractmethod
     def asdict(self):  # pragma: no cover
         """
         Returns a dict form of the metric that is ready to be cast
@@ -49,35 +22,28 @@ class SingleMetric(ABC):
 
         Return: Dict that represents the metric.
         """
-        pass
+        raise NotImplementedError("Use a concrete Metric class.")
 
+    def __str__(self):
+        return str(self.asdict())
 
-class WrappedMetric(SingleMetric):
-    """
-    Wrapped metric is a metric that is ready to be released.
+    def __repr__(self):
+        return f"<{self.__class__.__name__}: {self.__str__()}>"
 
-    Its timestamp and value are calculated and they form the only
-    data point that this metric contains.
-    It usually represents a calculated value of some metric for
-    some period of time.
-    """
-
-    def asdict(self):
+    def __eq__(self, other: "Metric") -> bool:
         """
-        Returns a dict form of the metric that is ready to be cast
-        to JSON and stored for releasing.
+        Metrics are considered equal if their dicts are equal.
 
-        Return: Dict that represents the metric.
+        Args:
+            other: Another SingleMetric object to compare.
+        Return: Whether their dicts are equal.
         """
-        return {
-            "metric": self.metric,
-            "tags": self.tags,
-            "points": [[self.timestamp, self.value]],
-            "type": self.type,
-        }
+        if isinstance(other, Metric):
+            return self.asdict() == other.asdict()
+        return False
 
 
-class MergedMetric:
+class MergedMetric(Metric):
     """
     Merged metric is a metric that contains numerous values of a metric
     collected during some period of time.
@@ -89,7 +55,7 @@ class MergedMetric:
     MetricWrapper class consumes lists of MergedMetrics.
     """
 
-    __slots__ = ["metric", "tags", "timestamps", "values", "type"]
+    __slots__ = ["values", "timestamps"]
 
     def __init__(self, **kwargs: Any):
         self.metric = kwargs["metric"]
@@ -97,12 +63,6 @@ class MergedMetric:
         self.values = kwargs.get("values", [])
         self.timestamps = kwargs.get("timestamps", [])
         self.tags = kwargs.get("tags", [])
-
-    def __str__(self):
-        return str(self.asdict())
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__}: {self.__str__()}>"
 
     def __add__(self, other):
         """
@@ -130,18 +90,6 @@ class MergedMetric:
             tags=self.tags,
         )
 
-    def __eq__(self, other) -> bool:
-        """
-        Metrics are considered equal if their dicts are equal.
-
-        Args:
-            other: Another SingleMetric object to compare.
-        Return: Whether their dicts are equal.
-        """
-        if hasattr(other, "asdict"):
-            return self.asdict() == other.asdict()
-        return False
-
     def asdict(self):
         """
         Returns: Dict representation of the metric.
@@ -151,6 +99,46 @@ class MergedMetric:
             "tags": self.tags,
             "values": self.values,
             "timestamps": self.timestamps,
+            "type": self.type,
+        }
+
+
+class SingleMetric(Metric):
+    """
+    Parent class for both Wrapped and Raw metrics.
+    """
+
+    __slots__ = ["value", "timestamp"]
+
+    def __init__(self, **kwargs: Any):
+        self.metric = kwargs["metric"]
+        self.type = kwargs["type"]
+        self.value = kwargs["value"]
+        self.timestamp = kwargs.get("timestamp", time.time())
+        self.tags = kwargs.get("tags", [])
+
+
+class WrappedMetric(SingleMetric):
+    """
+    Wrapped metric is a metric that is ready to be released.
+
+    Its timestamp and value are calculated and they form the only
+    data point that this metric contains.
+    It usually represents a calculated value of some metric for
+    some period of time.
+    """
+
+    def asdict(self):
+        """
+        Returns a dict form of the metric that is ready to be cast
+        to JSON and stored for releasing.
+
+        Return: Dict that represents the metric.
+        """
+        return {
+            "metric": self.metric,
+            "tags": self.tags,
+            "points": [[self.timestamp, self.value]],
             "type": self.type,
         }
 
