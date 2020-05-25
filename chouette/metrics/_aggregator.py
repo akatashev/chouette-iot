@@ -1,9 +1,8 @@
 import json
 import logging
-from collections import defaultdict
 from functools import reduce
 from itertools import groupby
-from typing import Any, Iterator, List, Optional, Tuple, Union
+from typing import Any, Iterator, List, Optional, Tuple
 
 from chouette import ChouetteConfig
 from chouette._singleton_actor import SingletonActor
@@ -75,10 +74,7 @@ class MetricsMerger:
     @classmethod
     def merge_metrics(cls, b_metrics: List[bytes]) -> List[MergedMetric]:
         single_metrics = cls._cast_bytes_to_metrics(b_metrics)
-        grouped_metrics = groupby(
-            single_metrics,
-            key=lambda metric: f"{metric.name}_{metric.type}_{'_'.join(metric.tags)}",
-        )
+        grouped_metrics = groupby(single_metrics, lambda metric: metric.id)
         merged_metrics = map(
             lambda group: reduce(lambda a, b: a + b, group), grouped_metrics
         )

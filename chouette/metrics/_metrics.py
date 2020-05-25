@@ -53,9 +53,12 @@ class MergedMetric(Metric):
     for releasing.
 
     MetricWrapper class consumes lists of MergedMetrics.
+
+    Self.id is a unique identifier of a metric combined of its name, type
+    and tags. Only MergedMetrics with the same id can be merged together.
     """
 
-    __slots__ = ["values", "timestamps"]
+    __slots__ = ["values", "timestamps", "id"]
 
     def __init__(self, **kwargs: Any):
         self.metric = kwargs["metric"]
@@ -63,8 +66,9 @@ class MergedMetric(Metric):
         self.values = kwargs.get("values", [])
         self.timestamps = kwargs.get("timestamps", [])
         self.tags = kwargs.get("tags", [])
+        self.id = f"{self.metric}_{self.type}{'_'.join(self.tags)}"
 
-    def __add__(self, other):
+    def __add__(self, other: "MergedMetric"):
         """
         That's the Merge operation of a MergedMetric.
 
@@ -77,10 +81,7 @@ class MergedMetric(Metric):
             other: MergedMetric object to merge with this metric.
         Returns: A new metric with merged values and timestamps.
         """
-        different_names = self.metric != other.metric
-        different_types = self.type != other.type
-        different_tags = self.tags != other.tags
-        if different_names or different_types or different_tags:
+        if self.id != other.id:
             raise ValueError("Can't merge different metrics.")
         return MergedMetric(
             metric=self.metric,
