@@ -3,7 +3,7 @@ Metrics classes to handle metrics processing.
 """
 # pylint: disable=too-few-public-methods
 import time
-from typing import Any, List
+from typing import Any, Dict, List
 
 __all__ = ["MergedMetric", "RawMetric", "WrappedMetric"]
 
@@ -65,8 +65,24 @@ class MergedMetric(Metric):
         self.type = kwargs["type"]
         self.values = kwargs.get("values", [])
         self.timestamps = kwargs.get("timestamps", [])
-        self.tags = kwargs.get("tags", [])
-        self.id = f"{self.metric}_{self.type}{'_'.join(self.tags)}"
+        self.tags = kwargs.get("tags", {})
+        self.id = (
+            f"{self.metric}_{self.type}{'_'.join(self._stringify_tags(self.tags))}"
+        )
+
+    @staticmethod
+    def _stringify_tags(tags: Dict[str, str]) -> List[str]:
+        """
+        Takes a dict of tags and casts every dict into a line
+        "key:value".
+
+        Returns: List of strings with reformatted tags.
+        """
+        try:
+            tags_list = [f"{name}:{str(value)}" for name, value in tags.items()]
+        except (AttributeError, TypeError, ValueError):
+            tags_list = []
+        return tags_list
 
     def __add__(self, other: "MergedMetric"):
         """
@@ -97,7 +113,7 @@ class MergedMetric(Metric):
         """
         return {
             "metric": self.metric,
-            "tags": self.tags,
+            "tags": self._stringify_tags(self.tags),
             "values": self.values,
             "timestamps": self.timestamps,
             "type": self.type,
@@ -116,7 +132,6 @@ class SingleMetric(Metric):
         self.type = kwargs["type"]
         self.value = kwargs["value"]
         self.timestamp = kwargs.get("timestamp", time.time())
-        self.tags = kwargs.get("tags", [])
 
 
 class WrappedMetric(SingleMetric):
@@ -128,6 +143,10 @@ class WrappedMetric(SingleMetric):
     It usually represents a calculated value of some metric for
     some period of time.
     """
+
+    def __init__(self, **kwargs: Any):
+        super().__init__(**kwargs)
+        self.tags = kwargs.get("tags", [])
 
     def asdict(self):
         """
@@ -154,6 +173,10 @@ class RawMetric(SingleMetric):
     merged into a string during RawMetric processing by MetricsAggregator.
     """
 
+    def __init__(self, **kwargs: Any):
+        super().__init__(**kwargs)
+        self.tags = kwargs.get("tags", {})
+
     def asdict(self):
         """
         Returns a dict form of the metric that is ready to be cast
@@ -168,32 +191,3 @@ class RawMetric(SingleMetric):
             "value": self.value,
             "type": self.type,
         }
-
-    def mergify(self) -> MergedMetric:
-        """
-        Casts a RawMetric instance into a MergedMetric instance.
-
-        Returns: MergedMetric.
-        """
-        return MergedMetric(
-            metric=self.metric,
-            type=self.type,
-            values=[self.value],
-            timestamps=[self.timestamp],
-            tags=self._stringify_tags(),
-        )
-
-    def _stringify_tags(self) -> List[str]:
-        """
-        Takes a list of tags as dicts and casts every dict into a line
-        "key:value".
-
-        Returns: List of strings with reformatted tags.
-        """
-        if not self.tags:
-            return []
-        try:
-            tags_list = [f"{name}:{str(value)}" for name, value in self.tags]
-        except (TypeError, ValueError):
-            tags_list = []
-        return tags_list

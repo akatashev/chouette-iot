@@ -207,7 +207,7 @@ def test_redis_cleans_outdated_metrics_correctly(redis_actor, redis_cleanup):
     ]
     redis_actor.ask(msgs.StoreRecords("metrics", metrics, wrapped=True))
     # Test preparation finished.
-    message = msgs.CleanupOutdatedRecords("metrics", ttl=14400)
+    message = msgs.CleanupOutdatedRecords("metrics", ttl=14400, wrapped=True)
     result = redis_actor.ask(message)
     assert result is True
     # Checks that cleanup was correct.
@@ -252,7 +252,7 @@ def test_redis_returns_nil_on_failed_collections(redis_actor, message):
             [WrappedMetric(metric="a", type="b", timestamp=1, value=1)],
             wrapped=True,
         ),
-        msgs.CleanupOutdatedRecords("metrics", 14400),
+        msgs.CleanupOutdatedRecords("metrics", ttl=14400, wrapped=True),
     ],
 )
 def test_redis_returns_false_on_failed_actions(redis_actor, message):

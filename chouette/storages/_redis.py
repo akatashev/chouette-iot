@@ -288,10 +288,7 @@ class RedisStorage(SingletonActor):
             request: One of `chouette.storage.messages` objects.
         Return: Tuple of a queue name, a set name and a hash name as strings.
         """
-        if hasattr(request, "wrapped"):
-            queue_type = "wrapped" if request.wrapped else "raw"
-        else:
-            queue_type = "wrapped"
+        queue_type = "wrapped" if request.wrapped else "raw"
         queue_name = f"chouette:{queue_type}:{request.data_type}"
         set_name = f"{queue_name}.keys"
         hash_name = f"{queue_name}.values"

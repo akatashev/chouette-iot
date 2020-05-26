@@ -81,8 +81,11 @@ class MetricsSender(SingletonActor):
             message: Can be anything.
         Returns: Whether data was dispatched and cleaned successfully.
         """
+        logger.debug("[%s] Cleaning up outdated wrapped metrics.", self.name)
         self.redis = RedisStorage.get_instance()
-        self.redis.ask(CleanupOutdatedRecords("metrics", self.metric_ttl))
+        self.redis.ask(
+            CleanupOutdatedRecords("metrics", ttl=self.metric_ttl, wrapped=True)
+        )
         keys = self.collect_keys()
         if not keys:
             logger.info("[%s] Nothing to dispatch.", self.name)

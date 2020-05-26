@@ -78,7 +78,7 @@ def raw_metrics_values():
         ),
         (
             b"metric-uuid-3",
-            b'{"metric": "metric-3", "type": "gauge", "timestamp": 23, "value": 12, "tags": [{"very": "important"}]}',
+            b'{"metric": "metric-3", "type": "gauge", "timestamp": 23, "value": 12, "tags": {"very": "important"}}',
         ),
         (
             b"metric-uuid-4",

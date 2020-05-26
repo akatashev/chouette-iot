@@ -33,9 +33,9 @@ class CleanupOutdatedRecords:
     no "wrapped" flag that all other messages have.
     """
 
-    __slots__ = ["data_type", "ttl"]
+    __slots__ = ["data_type", "ttl", "wrapped"]
 
-    def __init__(self, data_type: str, ttl: int = 14400):
+    def __init__(self, data_type: str, wrapped: bool, ttl: int = 14400):
         """
         Args:
             data_type: Type of data to cleanup. E.g: 'metrics'.
@@ -43,12 +43,14 @@ class CleanupOutdatedRecords:
         """
         self.data_type = data_type
         self.ttl = ttl
+        self.wrapped = wrapped
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return f"<{self.__class__.__name__}:{self.data_type}:ttl={self.ttl}>"
+        return f"<{self.__class__.__name__}:{self.data_type}:" \
+               f"wrapped={self.wrapped}:ttl={self.ttl}>"
 
 
 class CollectKeys:

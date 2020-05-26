@@ -15,15 +15,15 @@ def test_merged_metric_successfull_merge():
           and timestamps.
     """
     metric1 = MergedMetric(
-        metric="name", type="type", values=[1], timestamps=[2], tags=["tag:1"]
+        metric="name", type="type", values=[1], timestamps=[2], tags={"tag": "1"}
     )
     metric2 = MergedMetric(
-        metric="name", type="type", values=[3], timestamps=[4], tags=["tag:1"]
+        metric="name", type="type", values=[3], timestamps=[4], tags={"tag": "1"}
     )
     result = metric1 + metric2
     assert result.metric == "name"
     assert result.type == "type"
-    assert result.tags == ["tag:1"]
+    assert result.tags == {"tag": "1"}
     assert result.timestamps == [2, 4]
     assert result.values == [1, 3]
 
@@ -37,10 +37,10 @@ def test_merged_metric_unsuccessful_merge():
     THEN: ValueError exception is raised.
     """
     metric1 = MergedMetric(
-        metric="name", type="type1", values=[1], timestamps=[2], tags=["tag:1"]
+        metric="name", type="type1", values=[1], timestamps=[2], tags={"tag": "1"}
     )
     metric2 = MergedMetric(
-        metric="name", type="type2", values=[3], timestamps=[4], tags=["tag:1"]
+        metric="name", type="type2", values=[3], timestamps=[4], tags={"tag": "1"}
     )
     with pytest.raises(ValueError):
         metric1 + metric2
@@ -64,7 +64,7 @@ def test_merged_metric_str_and_repr():
         type="count",
         values=[1],
         timestamps=[2],
-        tags=["test:test"],
+        tags={"test": "test"},
     )
     metric_dict = metric.asdict()
     assert metric_dict == expected_dict
@@ -82,12 +82,10 @@ def test_raw_metric_str_and_repr():
         "type": "count",
         "value": 1,
         "timestamp": 2,
-        "tags": {"tag": "nice"},
+        "tags": {},
     }
 
-    metric = RawMetric(
-        metric="rawMetric", type="count", value=1, timestamp=2, tags={"tag": "nice"}
-    )
+    metric = RawMetric(metric="rawMetric", type="count", value=1, timestamp=2)
     metric_dict = metric.asdict()
     assert metric_dict == expected_dict
     assert str(metric) == str(metric_dict)

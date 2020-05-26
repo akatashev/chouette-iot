@@ -12,8 +12,8 @@ def test_cleanup_str_and_repr():
     CleanupOutdatedRecords:
     __str__ and __repr__  methods return the same string.
     """
-    msg = CleanupOutdatedRecords("degrees", 451)
-    assert str(msg) == f"<CleanupOutdatedRecords:degrees:ttl=451>"
+    msg = CleanupOutdatedRecords("degrees", wrapped=True, ttl=451)
+    assert str(msg) == f"<CleanupOutdatedRecords:degrees:wrapped=True:ttl=451>"
     assert repr(msg) == str(msg)
 
 
