@@ -4,9 +4,10 @@ chouette.metrics.plugins.HostStatsCollector
 import logging
 from collections import namedtuple
 from itertools import chain
-from typing import Iterator
+from typing import Iterator, List
 
 import psutil
+from pydantic import BaseSettings
 
 from chouette._singleton_actor import SingletonActor
 from ._collector_plugin import CollectorPlugin
@@ -17,6 +18,18 @@ __all__ = ["HostStatsCollector"]
 logger = logging.getLogger("chouette")
 
 
+class HostCollectorConfig(BaseSettings):
+    """
+    Optional Environment variables based configuration.
+
+    It specifies what metrics this plugin should collect. By default all
+    metrics are listed here, but it's possible to request a subset of them
+    via an environment variable.
+    """
+
+    host_collector_metrics: List[str] = ["cpu", "fs", "ram"]
+
+
 class HostStatsCollector(SingletonActor):
     """
     Actor that collects host data like RAM, CPU and HDD usage.
@@ -24,6 +37,19 @@ class HostStatsCollector(SingletonActor):
     NB: Collectors MUST interact with plugins via `tell` pattern.
         `ask` pattern will return None.
     """
+
+    def __init__(self):
+        super().__init__()
+
+        host_methods = {
+            "cpu": HostCollectorPlugin.get_cpu_percentage,
+            "fs": HostCollectorPlugin.get_fs_metrics,
+            "ram": HostCollectorPlugin.get_ram_metrics,
+        }
+
+        metrics_to_send = HostCollectorConfig().host_collector_metrics
+        collection_methods = [host_methods.get(method) for method in metrics_to_send]
+        self.methods = [method for method in collection_methods if method]
 
     def on_receive(self, message: StatsRequest) -> None:
         """
@@ -37,12 +63,7 @@ class HostStatsCollector(SingletonActor):
         """
         logger.debug("[%s] Received %s.", self.name, message)
         if isinstance(message, StatsRequest):
-            collection_methods = [
-                HostCollectorPlugin.get_cpu_percentage,
-                HostCollectorPlugin.get_fs_metrics,
-                HostCollectorPlugin.get_ram_metrics,
-            ]
-            metrics = map(lambda func: func(), collection_methods)
+            metrics = map(lambda func: func(), self.methods)
             stats = chain.from_iterable(metrics)
             if hasattr(message.sender, "tell"):
                 message.sender.tell(StatsResponse(self.name, stats))

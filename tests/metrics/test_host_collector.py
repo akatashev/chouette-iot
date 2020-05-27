@@ -43,7 +43,7 @@ def test_host_collector_returns_stats_response(test_actor, collector_ref):
     assert isinstance(response, StatsResponse)
     assert response.producer == "HostStatsCollector"
     stats = response.stats
-    assert all(map(lambda elem: isinstance(elem, WrappedMetric), stats))
+    assert all(isinstance(elem, WrappedMetric) for elem in stats)
 
 
 @patch("psutil.cpu_percent")
@@ -78,3 +78,15 @@ def test_host_collector_does_not_crash_on_wrong_sender(test_actor, collector_ref
     """
     collector_ref.ask(StatsRequest(test_actor))
     assert collector_ref.is_alive()
+
+
+def test_host_collector_can_collect_subset_of_metrics(test_actor, monkeypatch):
+    monkeypatch.setenv("HOST_COLLECTOR_METRICS", '["cpu"]')
+    collector_ref = HostStatsCollector.start()
+    collector_ref.ask(StatsRequest(test_actor))
+    response = test_actor.ask("messages").pop()
+    stats = list(response.stats)
+    non_cpu_metrics = [stat for stat in stats if "cpu" not in stat.metric]
+    cpu_metrics = [stat for stat in stats if "cpu" in stat.metric]
+    assert cpu_metrics
+    assert not non_cpu_metrics

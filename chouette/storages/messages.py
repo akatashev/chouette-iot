@@ -49,8 +49,10 @@ class CleanupOutdatedRecords:
         return self.__str__()
 
     def __str__(self):
-        return f"<{self.__class__.__name__}:{self.data_type}:" \
-               f"wrapped={self.wrapped}:ttl={self.ttl}>"
+        return (
+            f"<{self.__class__.__name__}:{self.data_type}:"
+            f"wrapped={self.wrapped}:ttl={self.ttl}>"
+        )
 
 
 class CollectKeys:
