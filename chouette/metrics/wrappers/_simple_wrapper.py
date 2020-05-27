@@ -47,7 +47,7 @@ class SimpleWrapper(MetricsWrapper):
                     metric_type=merged_metric.type,
                     timestamp=timestamp,
                     value=len(merged_metric.values),
-                    tags=merged_metric.tags,
+                    tags=merged_metric.s_tags,
                 )
             )
         return metrics

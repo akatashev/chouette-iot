@@ -45,30 +45,37 @@ class Metric:
 
 class MergedMetric(Metric):
     """
-    Merged metric is a metric that contains numerous values of a metric
-    collected during some period of time.
+    MergedMetrics is a single object, that contains aggregated values and
+    timestamps of a number of metrics of the same name, type and tags,
+    collected during the same `aggregate_interval` period.
 
-    Usually it has numerous timestamps and numerous values and these values
-    must be somehow processed to generate a WrappedMetric that is ready
-    for releasing.
+    This aggregated data is a raw data that is being transformed by a
+    MetricsWrapper object to create WrappedMetrics, ready for release to
+    Datadog.
 
-    MetricWrapper class consumes lists of MergedMetrics.
+    MergedMetrics are being generated from raw metrics, so they are closer
+    to RawMetrics than to WrappedMetrics.
+
+    Like RawMetrics, they have separated `values` and `timestamps` fields
+    and their tags are dicts. But when a MergedMetric is generated, it
+    creates a `s_tags` property that represents the same tags in a form
+    that should be passed to a WrappedMetric - as a list of strings.
+    `asdict` method also returns a dict with these processed tags.
 
     Self.id is a unique identifier of a metric combined of its name, type
     and tags. Only MergedMetrics with the same id can be merged together.
     """
 
-    __slots__ = ["values", "timestamps", "id"]
+    __slots__ = ["values", "timestamps", "id", "s_tags"]
 
     def __init__(self, **kwargs: Any):
-        self.metric = kwargs["metric"]
-        self.type = kwargs["type"]
-        self.values = kwargs.get("values", [])
-        self.timestamps = kwargs.get("timestamps", [])
-        self.tags = kwargs.get("tags", {})
-        self.id = (
-            f"{self.metric}_{self.type}{'_'.join(self._stringify_tags(self.tags))}"
-        )
+        self.metric: str = kwargs["metric"]
+        self.type: str = kwargs["type"]
+        self.values: List[float] = kwargs.get("values", [])
+        self.timestamps: List[float] = kwargs.get("timestamps", [])
+        self.tags: Dict[str, str] = kwargs.get("tags", {})
+        self.s_tags: List[str] = self._stringify_tags(self.tags)
+        self.id: str = f"{self.metric}_{self.type}{'_'.join(self.s_tags)}"
 
     @staticmethod
     def _stringify_tags(tags: Dict[str, str]) -> List[str]:
@@ -113,7 +120,7 @@ class MergedMetric(Metric):
         """
         return {
             "metric": self.metric,
-            "tags": self._stringify_tags(self.tags),
+            "tags": self.s_tags,
             "values": self.values,
             "timestamps": self.timestamps,
             "type": self.type,
@@ -136,17 +143,28 @@ class SingleMetric(Metric):
 
 class WrappedMetric(SingleMetric):
     """
-    Wrapped metric is a metric that is ready to be released.
+    WrappedMetric is a metric that is ready to be released.
 
-    Its timestamp and value are calculated and they form the only
-    data point that this metric contains.
-    It usually represents a calculated value of some metric for
-    some period of time.
+    Its timestamp and value are calculated and they form the only data
+    point that this metric contains. It usually represents a calculated
+    value of some metric for some period of time.
+
+    One MergedMetric, being processed by a MetricsWrapper can produce
+    a number of WrappedMetrics.
+
+    Unlike RawMetric or MergedMetric, WrappedMetric's tags are not a dict
+    but a list:
+    Tags {"tag1": "value1", "tag2": "value2"} should be merged into a list
+    ["tag1:value1", "tag2:value2"] before creating a WrappedMetric.
+
+    For aggregated metrics this job is being performed by a MetricsWrapper,
+    but for WrappedMetrics produced by CollectionPlugins it should be done
+    by a developer.
     """
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
-        self.tags = kwargs.get("tags", [])
+        self.tags: List[str] = kwargs.get("tags", [])
 
     def asdict(self):
         """
@@ -165,17 +183,15 @@ class WrappedMetric(SingleMetric):
 
 class RawMetric(SingleMetric):
     """
-    Raw metric is a metric that needs to be processed to be released.
+    Raw metric is a metric that needs to be stored to a raw metrics queue
+    to be processed on the next aggregator run.
 
     It's used to store self metrics and represents a single metric datapoint.
-    Unlike MergedMetric and WrappedMetric, RawMetric contains a list of tags
-    where every tag is represented as a dict, not a string. Tags are being
-    merged into a string during RawMetric processing by MetricsAggregator.
     """
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
-        self.tags = kwargs.get("tags", {})
+        self.tags: Dict[str, str] = kwargs.get("tags", {})
 
     def asdict(self):
         """
