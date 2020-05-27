@@ -3,7 +3,6 @@ MetricsWrapper abstract class.
 """
 
 from abc import ABC, abstractmethod
-from functools import reduce
 from typing import List
 
 from chouette.metrics import MergedMetric, WrappedMetric
@@ -40,10 +39,8 @@ class MetricsWrapper(ABC):
             merged_metrics: List of MergedMetric objects with raw metrics.
         Returns: List of WrappedMetric objects ready to be sent to Datadog.
         """
-        if not merged_metrics:
-            return []
-        wrapped_metrics = map(cls._wrap_metric, merged_metrics)
-        return reduce(lambda a, b: a + b, wrapped_metrics)
+        metrics = [cls._wrap_metric(metric) for metric in merged_metrics]
+        return sum(metrics, [])
 
     @classmethod
     @abstractmethod
@@ -56,4 +53,4 @@ class MetricsWrapper(ABC):
             merged_metric: A single MergedMetric to process.
         Returns: List of produced WrappedMetric objects.
         """
-        pass
+        pass  # pragma: no cover
