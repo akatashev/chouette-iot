@@ -15,6 +15,8 @@ class WrappersFactory:
     WrapperFactory class creates Metrics Wrapper instances.
     """
 
+    wrapper_classes = {"simple": SimpleWrapper}
+
     @classmethod
     def get_wrapper(cls, wrapper_name: str) -> Optional[MetricsWrapper]:
         """
@@ -24,6 +26,6 @@ class WrappersFactory:
             wrapper_name: Name of a wrapper as a string.
         Returns: ActorRef or None.
         """
-        if wrapper_name.lower() == "simple":
-            return SimpleWrapper()
-        return None
+        wrapper_class = cls.wrapper_classes.get(wrapper_name)
+        wrapper = wrapper_class() if wrapper_class else None
+        return wrapper

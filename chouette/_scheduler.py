@@ -8,7 +8,7 @@ import time
 from threading import Lock
 from typing import Any, Callable, Optional
 
-from gevent import spawn_later, Greenlet
+from gevent import Greenlet, spawn_later
 
 __all__ = ["Scheduler", "Cancellable"]
 
@@ -75,7 +75,7 @@ class Cancellable:
                  the Cancellable timer.
         """
         with self._timer_lock:
-            if hasattr(self._timer, "kill"):
+            if isinstance(self._timer, Greenlet):
                 self._timer.kill()
             if self.is_cancelled():
                 return False

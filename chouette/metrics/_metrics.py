@@ -30,7 +30,7 @@ class Metric:
     def __repr__(self):
         return f"<{self.__class__.__name__}: {self.__str__()}>"
 
-    def __eq__(self, other: "Metric") -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Metrics are considered equal if their dicts are equal.
 

@@ -2,7 +2,6 @@
 chouette.metrics.plugins.HostStatsCollector
 """
 import logging
-from collections import namedtuple
 from itertools import chain
 from typing import Iterator, List
 
@@ -117,7 +116,7 @@ class HostCollectorPlugin(CollectorPlugin):
         return metrics
 
     @classmethod
-    def _process_filesystem(cls, filesystem: namedtuple) -> Iterator:
+    def _process_filesystem(cls, filesystem) -> Iterator:
         """
         Gets specific filesystem disk usage stats.
 

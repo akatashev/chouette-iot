@@ -26,6 +26,6 @@ class ChouetteConfig(BaseSettings):
     log_level: str = "INFO"
     metrics_bulk_size: int = 10000
     metric_ttl: int = 14400
-    metrics_wrapper: str = "simple"
+    metrics_wrapper: str = "datadog"
     release_interval: int = 60
     send_self_metrics: bool = True

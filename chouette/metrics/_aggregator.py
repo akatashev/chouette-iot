@@ -233,5 +233,5 @@ class MetricsMerger:
                 tags=dict_metric.get("tags"),
             )
         except (json.JSONDecodeError, TypeError, KeyError):
-            merged_metric = None
+            return None
         return merged_metric

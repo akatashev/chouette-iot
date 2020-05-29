@@ -4,6 +4,8 @@ MetricsCollector class.
 import logging
 from typing import Any
 
+from pykka import ActorRef
+
 from chouette import ChouetteConfig
 from chouette._singleton_actor import SingletonActor
 from chouette.metrics.plugins import PluginsFactory
@@ -56,7 +58,7 @@ class MetricsCollector(SingletonActor):
             redis.tell(StoreRecords("metrics", message.stats, wrapped=True))
         else:
             plugins = map(PluginsFactory.get_plugin, self.plugins)
-            for plugin in filter(None, plugins):
+            for plugin in filter(None, plugins):  # type: ActorRef
                 logger.info(
                     "[%s] Requesting stats from '%s'.",
                     self.name,
