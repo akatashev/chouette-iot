@@ -64,7 +64,9 @@ def test_host_collector_ignores_cpu_percentage_zero(
     cpu_perc.return_value = cpu_perc_value
     collector_ref.ask(StatsRequest(test_actor))
     response = test_actor.ask("messages").pop()
-    metric_exists = any(stat.metric == "host.cpu.percentage" for stat in response.stats)
+    metric_exists = any(
+        stat.metric == "Chouette.host.cpu.percentage" for stat in response.stats
+    )
     assert metric_exists == metric_must_exist
 
 

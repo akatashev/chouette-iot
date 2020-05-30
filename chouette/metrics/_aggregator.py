@@ -91,7 +91,6 @@ class MetricsAggregator(SingletonActor):
             return True
 
         keys = self.redis.ask(CollectKeys("metrics", wrapped=False))
-        print(keys)
         grouped_keys = MetricsMerger.group_metric_keys(keys, self.aggregate_interval)
         logger.info(
             "[%s] Separated %s metric keys into %s groups of %s seconds.",
