@@ -80,7 +80,18 @@ def test_host_collector_does_not_crash_on_wrong_sender(test_actor, collector_ref
     assert collector_ref.is_alive()
 
 
-def test_host_collector_can_collect_subset_of_metrics(test_actor, monkeypatch):
+@patch("psutil.cpu_percent")
+def test_host_collector_can_collect_subset_of_metrics(
+    cpu_perc, test_actor, monkeypatch
+):
+    """
+    It's possible to specify what subset of metrics you want to collect.
+
+    GIVEN: HOST_COLLECTOR_METRICS specify only cpu metrics.
+    WHEN: HostStatsCollector receives a StatRequest.
+    THEN: It collects and sends back only cpu metrics.
+    """
+    cpu_perc.return_value = 10.0
     monkeypatch.setenv("HOST_COLLECTOR_METRICS", '["cpu"]')
     collector_ref = HostStatsCollector.start()
     collector_ref.ask(StatsRequest(test_actor))

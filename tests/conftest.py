@@ -89,3 +89,41 @@ def raw_metrics_values():
             b'{"metric": "metric-4", "type": "gauge", "timestamp": 31, "value": 6}',
         ),
     ]
+
+
+@pytest.fixture
+def stored_raw_keys(redis_client, metrics_keys):
+    """
+    Fixture that stores dummy raw metrics keys to Redis.
+
+    Before and after every test queue set is being cleaned up.
+    """
+    redis_client.delete("chouette:raw:metrics.keys")
+    for key, ts in metrics_keys:
+        redis_client.zadd("chouette:raw:metrics.keys", {key: ts})
+    yield metrics_keys
+    redis_client.delete("chouette:raw:metrics.keys")
+
+
+@pytest.fixture
+def stored_raw_values(redis_client, raw_metrics_values):
+    """
+    Fixture that stores dummy raw metrics values to Redis.
+
+    Before and after every test queue hash is being cleaned up.
+    """
+    redis_client.delete("chouette:raw:metrics.values")
+    for key, message in raw_metrics_values:
+        redis_client.hset("chouette:raw:metrics.values", key, message)
+    yield raw_metrics_values
+    redis_client.delete("chouette:raw:metrics.values")
+
+
+@pytest.fixture
+def redis_cleanup(redis_client):
+    """
+    Fixture that wraps a test with Redis cleanups.
+    """
+    redis_client.flushall()
+    yield True
+    redis_client.flushall()

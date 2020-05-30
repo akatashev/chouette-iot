@@ -69,14 +69,13 @@ def stored_wrapped_keys(redis_client, metrics_keys):
 
 
 @pytest.fixture
-def expected_metrics(redis_client, sender_proxy):
+def expected_metrics(redis_client, sender_proxy, redis_cleanup):
     """
     Fixture that stores dummy wrapped metrics values to Redis and
     returns expected metrics for `collect_metrics` method tests.
 
     Before and after every test queue hash is being cleaned up.
     """
-    redis_client.flushall()
     metrics = [
         WrappedMetric(
             metric="metric-1",
@@ -101,7 +100,6 @@ def expected_metrics(redis_client, sender_proxy):
     for metric in dicts:
         metric["tags"] += global_tags
     yield dicts
-    redis_client.flushall()
 
 
 def test_sender_returns_true(sender_actor, expected_metrics):
@@ -122,7 +120,7 @@ def test_sender_returns_true(sender_actor, expected_metrics):
     assert not keys
 
 
-def test_sender_returns_true_on_no_keys(sender_actor, redis_client):
+def test_sender_returns_true_on_no_keys(sender_actor, redis_client, redis_cleanup):
     """
     MetricsSender returns True if there is nothing to dispatch.
 
@@ -130,7 +128,6 @@ def test_sender_returns_true_on_no_keys(sender_actor, redis_client):
     WHEN: MetricsSender receives a message.
     THEN: It returns True, because its work is finished successfully.
     """
-    redis_client.flushall()
     result = sender_actor.ask("dispatch")
     assert result is True
 

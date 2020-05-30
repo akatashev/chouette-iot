@@ -1,5 +1,4 @@
 import json
-import os
 import time
 from unittest.mock import patch
 
@@ -21,44 +20,6 @@ def redis_actor():
     """
     actor_ref = RedisStorage.get_instance()
     return actor_ref
-
-
-@pytest.fixture
-def stored_raw_keys(redis_client, metrics_keys):
-    """
-    Fixture that stores dummy raw metrics keys to Redis.
-
-    Before and after every test queue set is being cleaned up.
-    """
-    redis_client.delete("chouette:raw:metrics.keys")
-    for key, ts in metrics_keys:
-        redis_client.zadd("chouette:raw:metrics.keys", {key: ts})
-    yield metrics_keys
-    redis_client.delete("chouette:raw:metrics.keys")
-
-
-@pytest.fixture
-def stored_raw_values(redis_client, raw_metrics_values):
-    """
-    Fixture that stores dummy raw metrics values to Redis.
-
-    Before and after every test queue hash is being cleaned up.
-    """
-    redis_client.delete("chouette:raw:metrics.values")
-    for key, message in raw_metrics_values:
-        redis_client.hset("chouette:raw:metrics.values", key, message)
-    yield raw_metrics_values
-    redis_client.delete("chouette:raw:metrics.values")
-
-
-@pytest.fixture
-def redis_cleanup(redis_client):
-    """
-    Fixture that wraps a test with Redis cleanups.
-    """
-    redis_client.flushall()
-    yield True
-    redis_client.flushall()
 
 
 def test_redis_gets_keys_correctly(redis_actor, stored_raw_keys):
@@ -242,6 +203,20 @@ def test_redis_returns_nil_on_failed_collections(redis_actor, message):
     assert collection_result == []
 
 
+def test_redis_returns_empty_list_on_empty_collectvalue(redis_actor, redis_cleanup):
+    """
+    RedisStorage returns an empty list on a CollectValue request with empty
+    keys list.
+
+    GIVEN: There is a CollectValues message with an empty list of keys.
+    WHEN: Collection is requested from RedisStorage.
+    THEN: RedisStorage returns an empty list.
+    """
+    message = msgs.CollectValues("metrics", [], wrapped=True)
+    collection_result = redis_actor.ask(message)
+    assert collection_result == []
+
+
 @pytest.mark.parametrize(
     "message",
     [
@@ -264,8 +239,9 @@ def test_redis_returns_false_on_failed_actions(redis_actor, message):
     WHEN: Execution is requested from RedisStorage.
     THEN: RedisStorage returns False.
     """
-    with patch.object(Pipeline, "execute", side_effect=RedisError):
-        execution_result = redis_actor.ask(message)
+    with patch.object(Redis, "execute_command", side_effect=RedisError):
+        with patch.object(Pipeline, "execute", side_effect=RedisError):
+            execution_result = redis_actor.ask(message)
     assert execution_result is False
 
 

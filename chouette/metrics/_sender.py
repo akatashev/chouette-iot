@@ -163,9 +163,9 @@ class MetricsSender(SingletonActor):
         Returns: Whether these metrics were accepted by Datadog.
         """
         series = json.dumps({"series": metrics})
-        compressed_message = zlib.compress(series.encode())
+        compressed_message: bytes = zlib.compress(series.encode())
         metrics_num = len(metrics)
-        message_size = sys.getsizeof(compressed_message)
+        message_size = len(compressed_message)
         logger.info(
             "[%s] Dispatching %s metrics. Sending around %s KBs of data.",
             self.name,

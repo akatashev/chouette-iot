@@ -91,6 +91,7 @@ class MetricsAggregator(SingletonActor):
             return True
 
         keys = self.redis.ask(CollectKeys("metrics", wrapped=False))
+        print(keys)
         grouped_keys = MetricsMerger.group_metric_keys(keys, self.aggregate_interval)
         logger.info(
             "[%s] Separated %s metric keys into %s groups of %s seconds.",
@@ -146,7 +147,7 @@ class MetricsAggregator(SingletonActor):
                 len(wrapped_metrics),
             )
             cleaned_up = False
-        if not cleaned_up:
+        if metrics_stored and not cleaned_up:
             logger.error(
                 "[%s] Wrapped metrics were stored, but %s raw metrics "
                 "were not cleaned up. Metrics can be duplicated!",

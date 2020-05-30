@@ -114,21 +114,29 @@ class RedisStorage(SingletonActor):
         threshold = time.time() - request.ttl
         try:
             outdated_keys = self.redis.zrangebyscore(set_name, 0, threshold)
+            if not outdated_keys:
+                logger.debug(
+                    "[%s] No outdated records to cleanup in a queue '%s'",
+                    self.name,
+                    queue_name,
+                )
+                return True
             pipeline = self.redis.pipeline()
             pipeline.zremrangebyscore(set_name, 0, threshold)
             pipeline.hdel(hash_name, *outdated_keys)
             pipeline.execute()
             logger.debug(
-                "[%s] Cleaned %s outdated records from a queue `%s`.",
+                "[%s] Cleaned %s outdated records from a queue '%s'.",
                 self.name,
                 len(outdated_keys),
                 queue_name,
             )
-        except RedisError:
+        except RedisError as error:
             logger.warning(
-                "[%s] Could not cleanup records in a queue '%s' due to a RedisError.",
+                "[%s] Could not cleanup records in a queue '%s' due to: '%s'.",
                 self.name,
                 queue_name,
+                error,
             )
             return False
         return True
@@ -152,11 +160,12 @@ class RedisStorage(SingletonActor):
         queue_name, set_name, _ = self._get_queue_names(request)
         try:
             keys = self.redis.zrange(set_name, 0, request.amount - 1, withscores=True)
-        except RedisError:
+        except RedisError as error:
             logger.warning(
-                "[%s] Could not collect keys from a queue '%s' due to a RedisError.",
+                "[%s] Could not collect keys from a queue '%s' due to: '%s'.",
                 self.name,
                 queue_name,
+                error
             )
             return []
         logger.debug(
@@ -179,14 +188,22 @@ class RedisStorage(SingletonActor):
         Returns: List of collected values.
         """
         queue_name, _, hash_name = self._get_queue_names(request)
+        if not request.keys:
+            logger.debug(
+                "[%s] No keys were specified to collect values for a queue '%s'.",
+                self.name,
+                queue_name,
+            )
+            return []
         try:
             raw_values = self.redis.hmget(hash_name, *request.keys)
             values: List[bytes] = list(filter(None, raw_values))
-        except RedisError:
+        except RedisError as error:
             logger.warning(
-                "[%s] Could not collect records from a queue '%s' due to a RedisError.",
+                "[%s] Could not collect records from a queue '%s' due to: '%s'.",
                 self.name,
                 queue_name,
+                error
             )
             return []
         logger.debug(
@@ -216,12 +233,13 @@ class RedisStorage(SingletonActor):
         pipeline.hdel(hash_name, *request.keys)
         try:
             pipeline.execute()
-        except RedisError:
+        except RedisError as error:
             logger.warning(
-                "[%s] Could not remove %s records from a queue '%s' due to a RedisError.",
+                "[%s] Could not remove %s records from a queue '%s' due to: '%s'.",
                 self.name,
                 len(request.keys),
                 queue_name,
+                error
             )
             return False
         logger.debug(
@@ -261,13 +279,14 @@ class RedisStorage(SingletonActor):
             pipeline.hset(hash_name, record_key, record_value)
         try:
             pipeline.execute()
-        except RedisError:
+        except RedisError as error:
             logger.warning(
-                "[%s] Could not store %s/%s records to queue '%s' due to a RedisError.",
+                "[%s] Could not store %s/%s records to queue '%s' due to: '%s'.",
                 self.name,
                 stored_metrics,
                 len(records_list),
                 queue_name,
+                error
             )
             return False
         logger.debug(
