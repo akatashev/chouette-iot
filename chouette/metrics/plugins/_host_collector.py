@@ -1,6 +1,7 @@
 """
 chouette.metrics.plugins.HostStatsCollector
 """
+# pylint: disable=too-few-public-methods
 import logging
 from itertools import chain
 from typing import Iterator, List
@@ -31,7 +32,7 @@ class HostCollectorConfig(BaseSettings):
 
 class HostStatsCollector(SingletonActor):
     """
-    Actor that collects host data like RAM, CPU and HDD usage.
+    Actor that collects host stats like RAM, CPU and HDD usage.
 
     NB: Collectors MUST interact with plugins via `tell` pattern.
         `ask` pattern will return None.
@@ -87,10 +88,10 @@ class HostCollectorPlugin(CollectorPlugin):
 
         Returns: Iterator over WrappedMetric objects.
         """
-        m1, m5, m15 = psutil.getloadavg()
-        m1m = cls._wrap_metrics([("Chouette.host.la", m1)], tags=["period:1m"])
-        m5m = cls._wrap_metrics([("Chouette.host.la", m5)], tags=["period:5m"])
-        m15m = cls._wrap_metrics([("Chouette.host.la", m15)], tags=["period:15m"])
+        min_1, min_5, min_15 = psutil.getloadavg()
+        m1m = cls._wrap_metrics([("Chouette.host.la", min_1)], tags=["period:1m"])
+        m5m = cls._wrap_metrics([("Chouette.host.la", min_5)], tags=["period:5m"])
+        m15m = cls._wrap_metrics([("Chouette.host.la", min_15)], tags=["period:15m"])
         return chain(m1m, m5m, m15m)
 
     @classmethod

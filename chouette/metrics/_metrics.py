@@ -138,7 +138,8 @@ class SingleMetric(Metric):
         self.metric = kwargs["metric"]
         self.type = kwargs["type"]
         self.value = kwargs["value"]
-        self.timestamp = kwargs.get("timestamp", time.time())
+        timestamp = kwargs.get("timestamp")
+        self.timestamp = int(timestamp if timestamp else time.time())
 
 
 class WrappedMetric(SingleMetric):
@@ -164,7 +165,8 @@ class WrappedMetric(SingleMetric):
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
-        self.tags: List[str] = kwargs.get("tags", [])
+        tags = kwargs.get("tags")
+        self.tags: List[str] = tags if tags else []
 
     def asdict(self):
         """
@@ -191,7 +193,8 @@ class RawMetric(SingleMetric):
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
-        self.tags: Dict[str, str] = kwargs.get("tags", {})
+        tags = kwargs.get("tags")
+        self.tags: Dict[str, str] = tags if tags else {}
 
     def asdict(self):
         """

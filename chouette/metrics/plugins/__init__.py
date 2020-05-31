@@ -2,19 +2,26 @@
 chouette.metrics.plugins
 """
 # pylint: disable=too-few-public-methods
-from typing import Optional
+from typing import Dict, Optional, Type
 
 from pykka import ActorRef
 
+from chouette._singleton_actor import SingletonActor
 from ._host_collector import HostStatsCollector
+from ._tegrastats_collector import TegrastatsCollector
 
-__all__ = ["HostStatsCollector", "PluginsFactory"]
+__all__ = ["HostStatsCollector", "PluginsFactory", "TegrastatsCollector"]
 
 
 class PluginsFactory:
     """
     PluginsFactory class creates plugins actors and returns their ActorRefs.
     """
+
+    plugins: Dict[str, Type[SingletonActor]] = {
+        "host": HostStatsCollector,
+        "tegrastats": TegrastatsCollector,
+    }
 
     @classmethod
     def get_plugin(cls, plugin_name: str) -> Optional[ActorRef]:
@@ -25,8 +32,8 @@ class PluginsFactory:
             plugin_name: Plugin name as a string.
         Returns: ActorRef or None.
         """
-        if plugin_name == "host":
-            plugin_class = HostStatsCollector
-        else:
+        plugin_class = cls.plugins.get(plugin_name)
+        if not plugin_class:
             return None
-        return plugin_class.get_instance()
+        actor_ref: ActorRef = plugin_class.get_instance()
+        return actor_ref

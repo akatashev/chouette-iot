@@ -116,7 +116,7 @@ def test_simple_metric_gets_timestamp():
     SimpleMetric instances are expected to get an actual timestamp if
     it didn't receive a "timestamp" keyword value.
     """
-    now = time.time()
+    now = int(time.time())
     metric = WrappedMetric(metric="wrappedMetric", type="count", value=1)
     assert metric.timestamp >= now
 
