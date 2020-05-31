@@ -19,6 +19,7 @@ from chouette.storages.messages import (
     DeleteRecords,
     StoreRecords,
 )
+from chouette.storages._redis_messages import GetRedisQueues, GetHashSizes
 
 __all__ = ["RedisStorage"]
 
@@ -93,6 +94,12 @@ class RedisStorage(SingletonActor):
 
         if isinstance(message, DeleteRecords):
             return self._delete_records(message)
+
+        if isinstance(message, GetHashSizes):
+            return self._get_hash_sizes(message)
+
+        if isinstance(message, GetRedisQueues):
+            return self._get_redis_queues(message)
 
         if isinstance(message, StoreRecords):
             return self._store_records(message)
@@ -250,6 +257,47 @@ class RedisStorage(SingletonActor):
         )
         return True
 
+    def _get_hash_sizes(self, request: GetHashSizes) -> List[Tuple[str, int]]:
+        """
+        Returns a list of tuples with hashes names and sizes.
+
+        Args:
+            request: GetHashSizes message with a list of hashes.
+        Return: List of tuples with hashes names and sizes.
+        """
+        try:
+            hash_sizes = [
+                (hash_name.decode(), int(self.redis.hlen(hash_name)))
+                for hash_name in request.hashes
+            ]
+        except RedisError as error:
+            logger.warning(
+                "[%s] Could not calculate hash sizes due to: '%s'.", self.name, error
+            )
+            return []
+        return hash_sizes
+
+    def _get_redis_queues(self, request: GetRedisQueues) -> List[bytes]:
+        """
+        Gets a list of Redis Keys (sets, hashes, lists, etc) using a specified
+        key name pattern.
+
+        Args:
+            request: GetRedisKeys message with a specified pattern.
+        Returns: List of found Redis Keys.
+        """
+        try:
+            redis_keys = self.redis.keys(request.pattern)
+        except RedisError as error:
+            logger.warning(
+                "[%s] Could not collect Redis keys for a pattern %s due to: '%s'.",
+                self.name,
+                request.pattern,
+                error,
+            )
+            return []
+        return redis_keys
+
     def _store_records(self, request: StoreRecords) -> bool:
         """
         Tries to store received records to a queue.
@@ -267,17 +315,25 @@ class RedisStorage(SingletonActor):
         queue_name, set_name, hash_name = self._get_queue_names(request)
         pipeline = self.redis.pipeline()
         records_list = list(request.records)
-        stored_metrics = 0
+        keys = {}
+        values = {}
         for record in records_list:
             record_key = str(uuid4())
             try:
                 record_value = json.dumps(record.asdict())
             except AttributeError:
                 continue
-            stored_metrics += 1
-            pipeline.zadd(set_name, {record_key: record.timestamp})
-            pipeline.hset(hash_name, record_key, record_value)
+            keys[record_key] = record.timestamp
+            values[record_key] = record_value
+        stored_metrics = len(values)
+        if not values:
+            logger.debug(
+                "[%s] Nothing to store to a queue '%s'.", self.name, queue_name
+            )
+            return True
         try:
+            pipeline.zadd(set_name, mapping=keys)
+            pipeline.hset(hash_name, mapping=values)
             pipeline.execute()
         except RedisError as error:
             logger.warning(

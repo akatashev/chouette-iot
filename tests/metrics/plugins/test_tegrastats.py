@@ -25,7 +25,9 @@ def tegrastats_mock():
     path = "/tmp/tegrastats"
     with open(path, "w") as tegra_result:
         tegra_result.write(
-            f"#!/bin/sh\necho '{TEGRASTATS_RESPONSE}'\necho 'Hello world!'"
+            f"#!/bin/sh\n"
+            f"echo '{TEGRASTATS_RESPONSE}'\n"
+            f"echo 'Hello world!'"
         )
     os.chmod(path, 0o755)
     return path
@@ -43,9 +45,9 @@ def tegraplugin_ref(tegrastats_mock, monkeypatch):
     ActorRegistry.stop_all()
 
 
-def test_tegrastats_collector_returns_stats_response(tegraplugin_ref, test_actor):
+def test_tegrastats_collector_handles_stats_request(tegraplugin_ref, test_actor):
     """
-    TegrastatsCollector returns an Iterator over WrappedMetrics:
+    TegrastatsCollector sends back a valid StatsResponse message.
 
     GIVEN: There is a valid tegrastats utility.
     WHEN: TegrastatsCollector receives a StatsRequest message.

@@ -9,6 +9,7 @@ from redis.client import Pipeline
 import chouette.storages.messages as msgs
 from chouette.metrics import WrappedMetric
 from chouette.storages import RedisStorage
+from chouette.storages._redis_messages import GetRedisQueues, GetHashSizes
 
 
 @pytest.fixture(scope="module")
@@ -20,6 +21,24 @@ def redis_actor():
     """
     actor_ref = RedisStorage.get_instance()
     return actor_ref
+
+
+def test_redis_gets_queues_correcty(redis_actor, stored_raw_values):
+    """"""
+    message = GetRedisQueues("chouette:*.values")
+    queues_names = redis_actor.ask(message)
+    assert queues_names == [b"chouette:raw:metrics.values"]
+
+
+def test_redis_gets_hash_sizes_correctly(redis_actor, stored_raw_values):
+    message = GetHashSizes(
+        [b"chouette:raw:metrics.values", b"chouette:wrapped:metrics.values"]
+    )
+    hash_sizes = redis_actor.ask(message)
+    assert hash_sizes == [
+        ("chouette:raw:metrics.values", 5),
+        ("chouette:wrapped:metrics.values", 0),
+    ]
 
 
 def test_redis_gets_keys_correctly(redis_actor, stored_raw_keys):
@@ -187,13 +206,15 @@ def test_redis_cleans_outdated_metrics_correctly(redis_actor, redis_cleanup):
     [
         msgs.CollectKeys("metrics", wrapped=False),
         msgs.CollectValues("metrics", [b"key"], wrapped=True),
+        GetRedisQueues("chouette:*"),
+        GetHashSizes([b"chouette:hash"]),
     ],
 )
 def test_redis_returns_nil_on_failed_collections(redis_actor, message):
     """
     RedisStorage returns an empty list on failed Collection messages:
 
-    GIVEN: There is a message of a CollectValues or CollectKeys type.
+    GIVEN: There is a message of a Collection type.
     BUT: Redis instance is not ready to handle it.
     WHEN: Collection is requested from RedisStorage.
     THEN: RedisStorage returns an empty list.
@@ -203,7 +224,7 @@ def test_redis_returns_nil_on_failed_collections(redis_actor, message):
     assert collection_result == []
 
 
-def test_redis_returns_empty_list_on_empty_collectvalue(redis_actor, redis_cleanup):
+def test_redis_returns_empty_list_on_empty_collect_value(redis_actor, redis_cleanup):
     """
     RedisStorage returns an empty list on a CollectValue request with empty
     keys list.
@@ -221,7 +242,6 @@ def test_redis_returns_empty_list_on_empty_collectvalue(redis_actor, redis_clean
     "message",
     [
         msgs.DeleteRecords("metrics", [b"key"], wrapped=False),
-        msgs.StoreRecords("metrics", [b"not-a-valid-object"], wrapped=True),
         msgs.StoreRecords(
             "metrics",
             [WrappedMetric(metric="a", type="b", timestamp=1, value=1)],

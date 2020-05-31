@@ -7,10 +7,16 @@ from typing import Dict, Optional, Type
 from pykka import ActorRef
 
 from chouette._singleton_actor import SingletonActor
+from ._dramatiq_collector import DramatiqCollector
 from ._host_collector import HostStatsCollector
 from ._tegrastats_collector import TegrastatsCollector
 
-__all__ = ["HostStatsCollector", "PluginsFactory", "TegrastatsCollector"]
+__all__ = [
+    "DramatiqCollector",
+    "HostStatsCollector",
+    "PluginsFactory",
+    "TegrastatsCollector",
+]
 
 
 class PluginsFactory:
@@ -19,6 +25,7 @@ class PluginsFactory:
     """
 
     plugins: Dict[str, Type[SingletonActor]] = {
+        "dramatiq": DramatiqCollector,
         "host": HostStatsCollector,
         "tegrastats": TegrastatsCollector,
     }
