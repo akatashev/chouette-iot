@@ -26,7 +26,7 @@ class HostCollectorConfig(BaseSettings):
     via an environment variable.
     """
 
-    host_collector_metrics: List[str] = ["cpu", "fs", "ram"]
+    host_collector_metrics: List[str] = ["cpu", "fs", "la", "ram"]
 
 
 class HostStatsCollector(SingletonActor):
@@ -43,6 +43,7 @@ class HostStatsCollector(SingletonActor):
         host_methods = {
             "cpu": HostCollectorPlugin.get_cpu_percentage,
             "fs": HostCollectorPlugin.get_fs_metrics,
+            "la": HostCollectorPlugin.get_la_metrics,
             "ram": HostCollectorPlugin.get_ram_metrics,
         }
 
@@ -76,6 +77,23 @@ class HostCollectorPlugin(CollectorPlugin):
     """
 
     @classmethod
+    def get_la_metrics(cls) -> Iterator:
+        """
+        Gets LA stats via 'getloadavg()' method:
+        https://psutil.readthedocs.io/en/latest/#psutil.getloadavg
+
+        Returns a metric "Chouette.host.la" for 1m, 5m and 15m with
+        corresponding  tags.
+
+        Returns: Iterator over WrappedMetric objects.
+        """
+        m1, m5, m15 = psutil.getloadavg()
+        m1m = cls._wrap_metrics([("Chouette.host.la", m1)], tags=["period:1m"])
+        m5m = cls._wrap_metrics([("Chouette.host.la", m5)], tags=["period:5m"])
+        m15m = cls._wrap_metrics([("Chouette.host.la", m15)], tags=["period:15m"])
+        return chain(m1m, m5m, m15m)
+
+    @classmethod
     def get_cpu_percentage(cls) -> Iterator:
         """
         Gets CPU percentage stats via 'cpu_percent()' method:
@@ -88,7 +106,7 @@ class HostCollectorPlugin(CollectorPlugin):
         """
         cpu_percentage = psutil.cpu_percent()
         if cpu_percentage != 0.0:
-            collecting_metrics = [("host.cpu.percentage", cpu_percentage)]
+            collecting_metrics = [("Chouette.host.cpu.percentage", cpu_percentage)]
         else:
             collecting_metrics = []
         return cls._wrap_metrics(collecting_metrics)
@@ -135,8 +153,8 @@ class HostCollectorPlugin(CollectorPlugin):
         tags = [f"device:{filesystem.device}"]
         fs_usage = psutil.disk_usage(filesystem.mountpoint)
         collecting_metrics = [
-            ("host.fs.used", fs_usage.used),
-            ("host.fs.free", fs_usage.free),
+            ("Chouette.host.fs.used", fs_usage.used),
+            ("Chouette.host.fs.free", fs_usage.free),
         ]
         return cls._wrap_metrics(collecting_metrics, tags=tags)
 
@@ -156,7 +174,7 @@ class HostCollectorPlugin(CollectorPlugin):
         """
         memory = psutil.virtual_memory()
         collecting_metrics = [
-            ("host.memory.used", memory.used),
-            ("host.memory.available", memory.available),
+            ("Chouette.host.memory.used", memory.used),
+            ("Chouette.host.memory.available", memory.available),
         ]
         return cls._wrap_metrics(collecting_metrics)

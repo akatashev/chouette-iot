@@ -165,7 +165,7 @@ class RedisStorage(SingletonActor):
                 "[%s] Could not collect keys from a queue '%s' due to: '%s'.",
                 self.name,
                 queue_name,
-                error
+                error,
             )
             return []
         logger.debug(
@@ -203,7 +203,7 @@ class RedisStorage(SingletonActor):
                 "[%s] Could not collect records from a queue '%s' due to: '%s'.",
                 self.name,
                 queue_name,
-                error
+                error,
             )
             return []
         logger.debug(
@@ -239,7 +239,7 @@ class RedisStorage(SingletonActor):
                 self.name,
                 len(request.keys),
                 queue_name,
-                error
+                error,
             )
             return False
         logger.debug(
@@ -286,7 +286,7 @@ class RedisStorage(SingletonActor):
                 stored_metrics,
                 len(records_list),
                 queue_name,
-                error
+                error,
             )
             return False
         logger.debug(
