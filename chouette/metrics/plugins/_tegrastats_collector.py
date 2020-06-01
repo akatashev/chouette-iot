@@ -23,11 +23,12 @@ logger = logging.getLogger("chouette")
 
 class TegrastatsConfig(BaseSettings):
     """
-    Optional Environment variables based configuration.
+    Environment variables based configuration.
 
-    It specifies what metrics this plugin should collect. By default all
-    metrics are listed here, but it's possible to request a subset of them
-    via an environment variable.
+    It specifies what metrics this plugin should collect and a path to a
+    Tegrastats executable.
+    By default all metrics are listed here, but it's possible to request
+    a subset of them via an environment variable.
     """
 
     tegrastats_metrics: List[str] = ["ram", "temp"]

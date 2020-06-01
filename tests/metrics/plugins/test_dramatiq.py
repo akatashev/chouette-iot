@@ -34,7 +34,7 @@ def dramatiq_queue(redis_client, redis_cleanup):
 
 
 def test_dramatiq_collector_handles_stats_requests(
-        dramatiq_ref, test_actor, dramatiq_queue
+    dramatiq_ref, test_actor, dramatiq_queue
 ):
     """
     DramatiqCollector sends back a valid StatsResponse message.

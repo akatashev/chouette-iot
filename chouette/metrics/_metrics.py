@@ -89,7 +89,7 @@ class MergedMetric(Metric):
             tags_list = [f"{name}:{str(value)}" for name, value in tags.items()]
         except (AttributeError, TypeError, ValueError):
             tags_list = []
-        return tags_list
+        return sorted(tags_list)
 
     def __add__(self, other: "MergedMetric"):
         """
@@ -166,7 +166,7 @@ class WrappedMetric(SingleMetric):
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
         tags = kwargs.get("tags")
-        self.tags: List[str] = tags if tags else []
+        self.tags: List[str] = sorted(tags) if tags else []
 
     def asdict(self):
         """

@@ -5,6 +5,9 @@ from pykka import ActorRegistry
 from redis import Redis
 
 from chouette._singleton_actor import SingletonActor
+from chouette import ChouetteConfig
+import requests_mock
+from requests.exceptions import ConnectTimeout
 
 
 @pytest.fixture(scope="session")
@@ -127,3 +130,47 @@ def redis_cleanup(redis_client):
     redis_client.flushall()
     yield True
     redis_client.flushall()
+
+
+@pytest.fixture(scope="session")
+def k8s_stats_response():
+    """
+    Returns K8s /stats/summary endpoint output from microk8s on Jetson Nano.
+    """
+    with open("tests/resources/k8s_response.txt", "r") as response_file:
+        response = response_file.read()
+    return response
+
+
+@pytest.fixture
+def mocked_http(monkeypatch, k8s_stats_response):
+    """
+    Datadog host and K8s stats mocking fixture.
+
+    Datadog host:
+    On API Key `correct` it returns 202 Accepted.
+    On API Key `authfail` it returns 403 Authentication error.
+    On API Key `exc` it raises a ConnectTimeout exception.
+
+    K8s stats:
+    /stats/summary returns a correct response.
+    /stats/notjson returns 200 OK with a not JSON body.
+    /stats/exc raises a ConnectTimeout exception.
+    /stats/wrongcred returns 401 Unauthorized.
+    """
+    monkeypatch.setenv("API_KEY", "correct")
+    monkeypatch.setenv("GLOBAL_TAGS", '["chouette:est:chouette"]')
+    monkeypatch.setenv("METRICS_BULK_SIZE", "3")
+    monkeypatch.setenv("DATADOG_URL", "https://choeutte-iot.mock")
+    datadog_url = ChouetteConfig().datadog_url
+    with requests_mock.mock() as mock:
+        mock.register_uri("POST", "/v1/series?api_key=correct", status_code=202)
+        mock.register_uri("POST", "/v1/series?api_key=authfail", status_code=403)
+        mock.register_uri("POST", "/v1/series?api_key=exc", exc=ConnectTimeout)
+        mock.register_uri("GET", "/stats/summary", text=k8s_stats_response)
+        mock.register_uri("GET", "/stats/notjson", text='{"node": []')
+        mock.register_uri("GET", "/stats/exc", exc=ConnectTimeout)
+        mock.register_uri(
+            "GET", "/stats/wrongcreds", status_code=401, text="Unauthorized"
+        )
+        yield datadog_url

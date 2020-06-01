@@ -10,10 +10,12 @@ from chouette._singleton_actor import SingletonActor
 from ._dramatiq_collector import DramatiqCollector
 from ._host_collector import HostStatsCollector
 from ._tegrastats_collector import TegrastatsCollector
+from ._k8s_collector import K8sCollector
 
 __all__ = [
     "DramatiqCollector",
     "HostStatsCollector",
+    "K8sCollector",
     "PluginsFactory",
     "TegrastatsCollector",
 ]
@@ -27,6 +29,7 @@ class PluginsFactory:
     plugins: Dict[str, Type[SingletonActor]] = {
         "dramatiq": DramatiqCollector,
         "host": HostStatsCollector,
+        "k8s": K8sCollector,
         "tegrastats": TegrastatsCollector,
     }
 

@@ -3,7 +3,6 @@ MetricsSender actor.
 """
 import json
 import logging
-import sys
 import zlib
 from typing import Any, List, Optional
 
@@ -94,8 +93,14 @@ class MetricsSender(SingletonActor):
         dispatched = self.dispatch_to_datadog(metrics)
         if dispatched:
             cleaned_up = self.redis.ask(DeleteRecords("metrics", keys, wrapped=True))
+            if not cleaned_up:
+                logger.error(
+                    "[%s] Metrics were dispatched, but not cleaned up!", self.name
+                )
         else:
-            logger.error("[%s] Metrics were dispatched, but not cleaned up!", self.name)
+            logger.warning(
+                "[%s] Metrics were neither dispatched, nor cleaned.", self.name
+            )
             cleaned_up = False
 
         return dispatched and cleaned_up

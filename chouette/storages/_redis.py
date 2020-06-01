@@ -318,11 +318,11 @@ class RedisStorage(SingletonActor):
         keys = {}
         values = {}
         for record in records_list:
-            record_key = str(uuid4())
             try:
                 record_value = json.dumps(record.asdict())
             except AttributeError:
                 continue
+            record_key = str(uuid4())
             keys[record_key] = record.timestamp
             values[record_key] = record_value
         stored_metrics = len(values)

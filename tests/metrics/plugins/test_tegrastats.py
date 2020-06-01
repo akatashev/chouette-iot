@@ -25,9 +25,7 @@ def tegrastats_mock():
     path = "/tmp/tegrastats"
     with open(path, "w") as tegra_result:
         tegra_result.write(
-            f"#!/bin/sh\n"
-            f"echo '{TEGRASTATS_RESPONSE}'\n"
-            f"echo 'Hello world!'"
+            f"#!/bin/sh\n" f"echo '{TEGRASTATS_RESPONSE}'\n" f"echo 'Hello world!'"
         )
     os.chmod(path, 0o755)
     return path

@@ -1,43 +1,19 @@
 import json
 import time
+from unittest.mock import patch
 
 import pytest
-import requests_mock
 from pykka import ActorRegistry
-from requests.exceptions import ConnectTimeout
+from redis import RedisError
+from redis.client import Pipeline
 
-from chouette import ChouetteConfig
 from chouette.metrics import MetricsSender
 from chouette.metrics import WrappedMetric
 from chouette.storages.messages import StoreRecords, CollectKeys
-from unittest.mock import patch
-from redis.client import Pipeline
-from redis import RedisError
 
 
 @pytest.fixture
-def datadog_endpoint(monkeypatch):
-    """
-    Datadog host mocking fixture.
-    
-    On API Key `correct` it returns 202 Accepted.
-    On API Key `authfail` it returns 403 Authentication error.
-    On API Key `exc` it raises a ConnectTimeout exception.
-    """
-    monkeypatch.setenv("API_KEY", "correct")
-    monkeypatch.setenv("GLOBAL_TAGS", '["chouette:est:chouette"]')
-    monkeypatch.setenv("METRICS_BULK_SIZE", "3")
-    monkeypatch.setenv("DATADOG_URL", "https://choeutte-iot.mock")
-    datadog_url = ChouetteConfig().datadog_url
-    with requests_mock.mock() as mock:
-        mock.register_uri("POST", f"/v1/series?api_key=correct", status_code=202)
-        mock.register_uri("POST", f"/v1/series?api_key=authfail", status_code=403)
-        mock.register_uri("POST", f"/v1/series?api_key=exc", exc=ConnectTimeout)
-        yield datadog_url
-
-
-@pytest.fixture
-def sender_actor(monkeypatch, datadog_endpoint):
+def sender_actor(monkeypatch, mocked_http):
     """
     MetricsSender Actor fixture.
     """
@@ -134,7 +110,7 @@ def test_sender_returns_true_on_no_keys(sender_actor, redis_client, redis_cleanu
 
 @pytest.mark.parametrize("api_key", ["authfail", "exc"])
 def test_sender_returns_false_on_dispatch_problems(
-    monkeypatch, expected_metrics, api_key, datadog_endpoint
+    monkeypatch, expected_metrics, api_key, mocked_http
 ):
     """
     MetricsSender returns False on dispatch problems.
