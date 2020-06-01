@@ -24,13 +24,14 @@ class K8sCollectorConfig(BaseSettings):
     """
     Environment variables based plugin configuration.
 
-    STATS_SERVICE_IP is normally the IP of the node, it could be an external
-    IP (e.g. 192.168.1.104) or an internal IP (eg. 10.1.18.1). It's better to
-    use an internal IP if your connectivity isn't too good. because if you
-    rely on your external IP and connection disappears, the plugin will stop
-    collecting metrics. In case of an internal IP that won't happen.
+    K8S_STATS_SERVICE_IP is normally the IP of the node, it could be an
+    external IP (e.g. 192.168.1.104) or an internal IP (eg. 10.1.18.1). It's
+    better to use an internal IP if your connectivity isn't too good. because
+    if you rely on your external IP and connection disappears, the plugin will
+    stop collecting metrics. In case of an internal IP that won't happen.
 
-    STATS_SERVICE_PORT is a port of the Stats Service. By default it's 10250.
+    K8S_STATS_SERVICE_PORT is a port of the Stats Service. By default it's
+    10250.
 
     K8S_CERT_PATH is a path to a client certificate to pass the Stats Server
     authorization.
@@ -45,8 +46,8 @@ class K8sCollectorConfig(BaseSettings):
     likely to be more accurate.
     """
 
-    stats_service_ip: str
-    stats_service_port: int = 10250
+    k8s_stats_service_ip: str
+    k8s_stats_service_port: int = 10250
     k8s_cert_path: str  # Path to server.crt for microk8s
     k8s_key_path: str  # Path to server.key for microk8s
     k8s_metrics: List[str] = ["pods"]
@@ -62,7 +63,8 @@ class K8sCollector(SingletonActor):
         super().__init__()
 
         config = K8sCollectorConfig()
-        self.k8s_url: str = f"https://{config.stats_service_ip}:{config.stats_service_port}/stats/summary"
+        self.k8s_url: str = f"https://{config.k8s_stats_service_ip}:" \
+                            f"{config.k8s_stats_service_port}/stats/summary"
         self.certs: Tuple[str, str] = (config.k8s_cert_path, config.k8s_key_path)
         self.k8s_metrics: List[str] = config.k8s_metrics
 

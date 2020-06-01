@@ -15,7 +15,7 @@ def k8s_ref(monkeypatch):
     """
     K8sCollector ActorRef fixture.
     """
-    monkeypatch.setenv("STATS_SERVICE_IP", "10.1.18.1")
+    monkeypatch.setenv("K8S_STATS_SERVICE_IP", "10.1.18.1")
     monkeypatch.setenv("K8S_CERT_PATH", "client.crt")
     monkeypatch.setenv("K8S_KEY_PATH", "client.key")
     monkeypatch.setenv("K8S_METRICS", '["node", "pods"]')
