@@ -1,4 +1,4 @@
-#Chouette-iot
+# Chouette-iot
 
 **Chouette** is a [Pykka](https://www.pykka.org/) based **Datadog** compatible modular metrics collection agent and system monitoring solution for IoT solutions based on such devices as Raspberry Pi or Nvidia Jetson.
 
@@ -145,5 +145,5 @@ This deployment file creates a Deployment with a single chouette pod.
 Both `k8s-key` and `k8s-cert` are used by `K8sCollector` to collect data from K8s Stats Service.  
 `tegrastats` volume is used by `TegrastatsCollector`.
 
-##License
+## License
 Chouette is licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
