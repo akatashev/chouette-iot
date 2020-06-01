@@ -10,7 +10,7 @@ Chouette is expected to run along with Redis and monitored applications in a sys
 
 Monitored applications, using **chouette-client** put their metrics into Redis to be aggregated and processed.
 
-Every 10 seconds (*by default*) Chouette collects all the raw metrics from their queues and [aggregate](https://docs.datadoghq.com/developers/dogstatsd/data_aggregation/) them.
+Every 10 seconds (*by default*) Chouette collects all the raw metrics from their queues and [aggregates](https://docs.datadoghq.com/developers/dogstatsd/data_aggregation/) them.
 
 Aggregation means that metrics of the same type produced during the same period of time are being merged together and then their value is being used to calculate values for a set of metrics that is being sent to Datadog.
 
