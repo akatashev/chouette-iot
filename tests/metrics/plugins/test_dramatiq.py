@@ -23,13 +23,8 @@ def dramatiq_queue(redis_client, redis_cleanup):
     """
     Fake Dramatiq queue fixture.
     """
-    redis_client.hset(
-        "dramatiq:fake.msgs",
-        mapping={
-            b"key-1": b'{"metric": "metric1"}',
-            b"key-2": b'{"metric": "metric2"}',
-        },
-    )
+    redis_client.hset("dramatiq:fake.msgs", b"key-1", b'{"metric": "metric1"}')
+    redis_client.hset("dramatiq:fake.msgs", b"key-2", b'{"metric": "metric2"}')
     return "dramatiq:fake.msgs"
 
 
