@@ -10,6 +10,8 @@ jobs:
   python38: &unit-tests-template
     docker:
       - image: circleci/python:3.8
+        environment:
+          PYTHONPATH: .
     steps:
       - checkout
       - run:
