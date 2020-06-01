@@ -5,6 +5,9 @@ workflows:
   test:
     jobs:
       - python38
+      - python37
+      - python36
+      - pypy
 
 jobs:
   python38: &unit-tests-template
@@ -28,3 +31,33 @@ jobs:
             pytest -s -vvv --cov chouette --cov-report term-missing --junit-xml=test-results/pytest/results.xml
       - store_test_results:
           path: test-results
+
+  python37:
+    <<: *unit-tests-template
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          PYTHONPATH: .
+          REDIS_HOST: 127.0.0.1
+
+      - image: circleci/redis:3.2-alpine
+
+  python36:
+    <<: *unit-tests-template
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          PYTHONPATH: .
+          REDIS_HOST: 127.0.0.1
+
+      - image: circleci/redis:4.0.13-alpine
+
+  pypy:
+    <<: *unit-tests-template
+    docker:
+      - image: pypy:3.6
+        environment:
+          PYTHONPATH: .
+          REDIS_HOST: 127.0.0.1
+
+      - image: circleci/redis:5.0.5-alpine
