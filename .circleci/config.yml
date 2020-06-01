@@ -1,0 +1,23 @@
+version: 2.1
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - python38
+
+jobs:
+  python38: &unit-tests-template
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - run:
+          name: Install requirements
+          command: pip3 install requirements.txt
+      - run:
+          name: Run tests
+          command: |
+            pytest -s -vvv --cov chouette --cov-report term-missing --junit-xml=test-results/pytest/results.xml
+      - store_test_results:
+          path: test-results
