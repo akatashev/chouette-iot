@@ -129,7 +129,7 @@ def test_sender_returns_false_on_dispatch_problems(
     sender_proxy = sender_actor.proxy()
     keys = sender_proxy.collect_keys().get()
     values = sender_proxy.collect_metrics(keys).get()
-    assert list(map(json.loads, values)) == expected_metrics
+    assert values == expected_metrics
 
 
 def test_sender_returns_false_on_redis_problems(
@@ -150,7 +150,7 @@ def test_sender_returns_false_on_redis_problems(
     sender_proxy = sender_actor.proxy()
     keys = sender_proxy.collect_keys().get()
     values = sender_proxy.collect_metrics(keys).get()
-    assert list(map(json.loads, values)) == expected_metrics
+    assert values == expected_metrics
 
 
 def test_sender_collect_keys_returns_list_of_keys(sender_proxy, stored_wrapped_keys):
@@ -176,15 +176,14 @@ def test_sender_collect_metrics_returns_list_of_processed_metrics(
     GIVEN: There are records in a wrapped metrics queue.
     AND: One of the records is not a valid metric.
     WHEN: Method `collect_metrics` is called with their keys.
-    THEN: It returns a list of strings.
-    AND: These strings represent previously stored metrics.
+    THEN: It returns a list of dicts.
+    AND: These dicts represent previously stored metrics.
     AND: Every metric has global tags added to its `tags` property.
     AND: Invalid record is ignored.
     """
     keys = sender_proxy.collect_keys().get()
     assert len(keys) == 3
-    values = sender_proxy.collect_metrics(keys).get()
-    dicts = list(map(json.loads, values))
+    dicts = sender_proxy.collect_metrics(keys).get()
     assert dicts == expected_metrics
     assert len(dicts) == 2
 

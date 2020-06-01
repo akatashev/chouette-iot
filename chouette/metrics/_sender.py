@@ -105,23 +105,21 @@ class MetricsSender(SingletonActor):
 
         return dispatched and cleaned_up
 
-    def add_global_tags(self, b_metric: bytes) -> Optional[str]:
+    def add_global_tags(self, b_metric: bytes) -> Optional[dict]:
         """
         Takes a bytes objects that is expected to represent a JSON object,
-        casts it to an object, adds global tags to the list of tags and
-        encodes it back to a JSON string suitable for dispatching to
-        Datadog.
+        casts it to dict and adds global tags to it list of tags.
 
         Args:
             b_metric: Bytes object representing a metric as a JSON object.
-        Returns: JSON string of a metric with updated tags.
+        Returns: Dict representing a metric with updated tags..
         """
         try:
             d_metric = json.loads(b_metric)
         except (TypeError, json.JSONDecodeError):
             return None
         d_metric["tags"] = d_metric.get("tags", []) + self.tags
-        return json.dumps(d_metric)
+        return d_metric
 
     def collect_keys(self) -> List[bytes]:
         """
@@ -137,7 +135,7 @@ class MetricsSender(SingletonActor):
         logger.debug("[%s] Collected %s keys.", self.name, len(keys_and_ts))
         return list(map(lambda pair: pair[0], keys_and_ts))
 
-    def collect_metrics(self, keys: List[bytes]) -> List[str]:
+    def collect_metrics(self, keys: List[bytes]) -> List[dict]:
         """
         Gets a list of metrics from Redis, adds global tags to them and prepare
         them to be dispatched to Datadog.
@@ -150,7 +148,7 @@ class MetricsSender(SingletonActor):
         logger.debug("[%s] Collected %s metrics.", self.name, len(b_metrics))
         return list(filter(None, map(self.add_global_tags, b_metrics)))
 
-    def dispatch_to_datadog(self, metrics: List[str]) -> bool:
+    def dispatch_to_datadog(self, metrics: List[dict]) -> bool:
         """
         Dispatches metrics to Datadog as a "series" POST request.
 

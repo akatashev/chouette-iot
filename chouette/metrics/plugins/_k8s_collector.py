@@ -33,10 +33,12 @@ class K8sCollectorConfig(BaseSettings):
     STATS_SERVICE_PORT is a port of the Stats Service. By default it's 10250.
 
     K8S_CERT_PATH is a path to a client certificate to pass the Stats Server
-    authorization. In microk8s it's usually /var/snap/microk8s/certs/server.crt
+    authorization.
+    In microk8s it's usually /var/snap/microk8s/current/certs/server.crt
 
     K8S_KEY_PATH is a path to a client key to pass the Stats Server
-    authorization. In microk8s it's usually /var/snap/microk8s/certs/server.key
+    authorization.
+    In microk8s it's usually /var/snap/microk8s/current/certs/server.key
 
     K8S_METRICS is a list of metrics to collect. By default it's just pods,
     because node information can be collected via other plugins and it's

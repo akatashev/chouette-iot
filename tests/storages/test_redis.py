@@ -12,7 +12,7 @@ from chouette.storages import RedisStorage
 from chouette.storages._redis_messages import GetRedisQueues, GetHashSizes
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def redis_actor():
     """
     Redis actor fixture.
@@ -20,7 +20,8 @@ def redis_actor():
     Since RedisStorage actor is stateless, scope of the fixture is module.
     """
     actor_ref = RedisStorage.get_instance()
-    return actor_ref
+    yield actor_ref
+    actor_ref.stop()
 
 
 def test_redis_gets_queues_correcty(redis_actor, stored_raw_values):
@@ -70,7 +71,10 @@ def test_redis_gets_values_correctly(redis_actor, metrics_keys, stored_raw_value
     assert collected_values == expected_values
 
 
-def test_redis_stores_records_correctly(redis_actor, redis_cleanup):
+@pytest.mark.parametrize("redis_version", ["3.2.1", "5.0.5"])
+def test_redis_stores_records_correctly(
+    redis_version, redis_cleanup, post_test_actors_stop
+):
     """
     Redis stores records to a specified queue correctly.
 
@@ -80,6 +84,8 @@ def test_redis_stores_records_correctly(redis_actor, redis_cleanup):
     AND: One record is being added to the queue keys.
     AND: The queue hash contains our metric under this key.
     """
+    with patch.object(Redis, "info", return_value={"redis_version": redis_version}):
+        redis_actor = RedisStorage.get_instance()
     metric = WrappedMetric(
         metric="important-metric",
         type="count",

@@ -67,6 +67,9 @@ class RedisStorage(SingletonActor):
         super().__init__()
         config = RedisConfig()
         self.redis = Redis(host=config.redis_host, port=config.redis_port)
+        # Different versions of Redis use different HSET command formats:
+        redis_version = self.redis.info().get("redis_version")
+        self.redis_version = int(redis_version.split(".")[0])
 
     def on_receive(self, message: Any) -> Union[list, bool, None]:
         """
@@ -333,9 +336,14 @@ class RedisStorage(SingletonActor):
             return True
         try:
             pipeline.zadd(set_name, mapping=keys)
-            pipeline.hset(hash_name, mapping=values)
+            if self.redis_version >= 4:
+                # From Redis 4.0.0 HMSET command is deprecated.
+                pipeline.hset(hash_name, mapping=values)
+            else:
+                # Before Redis 4.0.0 HSET command took only 2 arguments:
+                pipeline.hmset(hash_name, mapping=values)
             pipeline.execute()
-        except RedisError as error:
+        except (RedisError, TypeError) as error:
             logger.warning(
                 "[%s] Could not store %s/%s records to queue '%s' due to: '%s'.",
                 self.name,
