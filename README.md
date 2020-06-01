@@ -1,5 +1,11 @@
 # Chouette-iot
 
+[![Chouette-iot](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com/akatashev/chouette-iot)
+[![Python 3.6+](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/)
+[![Pypy 3.6](https://img.shields.io/badge/pypy-3.6-blue.svg)](https://www.pypy.org/)
+[![CircleCI](https://circleci.com/gh/akatashev/chouette-iot/tree/dev.svg?style=svg)](https://app.circleci.com/pipelines/github/akatashev/chouette-iot)
+
+
 **Chouette** is a [Pykka](https://www.pykka.org/) based **Datadog** compatible modular metrics collection agent and system monitoring solution for IoT solutions based on such devices as Raspberry Pi or Nvidia Jetson.
 
 It uses Redis as a broker for metrics from other applications and as a storage for ready to dispatch metrics. Periodically it tries to dispatch data to Datadog. If it doesn't happen for some reason, metrics are being preserved in their queue to be dispatched later, when connectivity is restored or Chouette is redeployed with correct configuration.
