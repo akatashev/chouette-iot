@@ -25,7 +25,7 @@ def dramatiq_queue(redis_client, redis_cleanup):
     """
     redis_client.hset("dramatiq:fake.msgs", b"key-1", b'{"metric": "metric1"}')
     redis_client.hset("dramatiq:fake.msgs", b"key-2", b'{"metric": "metric2"}')
-    return "dramatiq:fake.msgs"
+    return "fake"
 
 
 def test_dramatiq_collector_handles_stats_requests(
@@ -40,7 +40,8 @@ def test_dramatiq_collector_handles_stats_requests(
     AND: Its sender is DramatiqCollector.
     AND: Its stats property is an Iterator over WrappedMetric objects.
     AND: It contains a single metric.
-    AND: This metrics tags contain this Dramatiq queue name.
+    AND: This metrics tags contain this Dramatiq queue name stripped of
+         "dramatiq:" prefix and ".msgs" postfix.
     AND: Its value is 2.
     """
     dramatiq_ref.ask(StatsRequest(test_actor))

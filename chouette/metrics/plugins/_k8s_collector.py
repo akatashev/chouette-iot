@@ -25,7 +25,7 @@ class K8sCollectorConfig(BaseSettings):
     Environment variables based plugin configuration.
 
     K8S_STATS_SERVICE_IP is normally the IP of the node, it could be an
-    external IP (e.g. 192.168.1.104) or an internal IP (eg. 10.1.18.1). It's
+    external IP (e.g. 192.168.1.104) or an internal IP (e.g. 10.1.18.1). It's
     better to use an internal IP if your connectivity isn't too good. because
     if you rely on your external IP and connection disappears, the plugin will
     stop collecting metrics. In case of an internal IP that won't happen.

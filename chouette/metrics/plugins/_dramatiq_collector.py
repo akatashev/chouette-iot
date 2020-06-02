@@ -3,6 +3,7 @@ chouette.metrics.plugins.DramatiqCollector
 """
 # pylint: disable=too-few-public-methods
 import logging
+import re
 from itertools import chain
 from typing import Iterator, List, Tuple
 
@@ -64,7 +65,8 @@ class DramatiqCollectorPlugin(CollectorPlugin):
         """
         metrics = [
             cls._wrap_metrics(
-                [("Chouette.dramatiq.queue_size", size)], tags=[f"queue:{queue}"]
+                [("Chouette.dramatiq.queue_size", size)],
+                tags=[f"queue:{re.sub(r'^dramatiq:|.msgs$', '', queue)}"],
             )
             for queue, size in sizes
         ]
