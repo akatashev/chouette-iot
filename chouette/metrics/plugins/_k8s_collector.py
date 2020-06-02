@@ -63,8 +63,7 @@ class K8sCollector(SingletonActor):
         super().__init__()
 
         config = K8sCollectorConfig()
-        self.k8s_url: str = f"https://{config.k8s_stats_service_ip}:" \
-                            f"{config.k8s_stats_service_port}/stats/summary"
+        self.k8s_url: str = f"https://{config.k8s_stats_service_ip}:" f"{config.k8s_stats_service_port}/stats/summary"
         self.certs: Tuple[str, str] = (config.k8s_cert_path, config.k8s_key_path)
         self.k8s_metrics: List[str] = config.k8s_metrics
 

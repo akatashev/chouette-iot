@@ -2,11 +2,11 @@ import logging
 import sys
 import time
 
-import gevent.monkey
-from pythonjsonlogger import jsonlogger
+import gevent.monkey  # type: ignore
+from pythonjsonlogger import jsonlogger  # type: ignore
 
 gevent.monkey.patch_all()
-from pykka import ActorRegistry
+from pykka import ActorRegistry  # type: ignore
 
 from chouette import Scheduler, ChouetteConfig
 from chouette.metrics import MetricsCollector, MetricsAggregator, MetricsSender

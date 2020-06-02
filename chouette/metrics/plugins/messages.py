@@ -6,7 +6,7 @@ Contains messages that Collectors and CollectorPlugins use to communicate.
 # pylint: disable=too-few-public-methods
 from typing import Iterator
 
-from pykka import ActorRef
+from pykka import ActorRef  # type: ignore
 
 
 __all__ = ["StatsRequest", "StatsResponse"]

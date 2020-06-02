@@ -6,7 +6,7 @@ import logging
 from itertools import chain
 from typing import Iterator, List
 
-import psutil
+import psutil  # type: ignore
 from pydantic import BaseSettings
 
 from chouette._singleton_actor import SingletonActor

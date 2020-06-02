@@ -8,8 +8,22 @@ workflows:
       - python37
       - python36
       - pypy
+      - mypy
 
 jobs:
+  mypy:
+    docker:
+      - image: circleci/python:3.8
+
+    steps:
+      - checkout
+      - run:
+          name: Install mypy
+          command: pip3 install mypy
+      - run:
+          name: Run mypy
+          command: mypy .
+
   python38: &unit-tests-template
     docker:
       - image: circleci/python:3.8

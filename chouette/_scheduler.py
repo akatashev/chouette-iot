@@ -8,7 +8,7 @@ import time
 from threading import Lock
 from typing import Any, Callable, Optional
 
-from gevent import Greenlet, spawn_later
+from gevent import Greenlet, spawn_later  # type: ignore
 
 __all__ = ["Scheduler", "Cancellable"]
 

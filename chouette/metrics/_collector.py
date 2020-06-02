@@ -4,7 +4,7 @@ MetricsCollector class.
 import logging
 from typing import Any
 
-from pykka import ActorRef
+from pykka import ActorRef  # type: ignore
 
 from chouette import ChouetteConfig
 from chouette._singleton_actor import SingletonActor

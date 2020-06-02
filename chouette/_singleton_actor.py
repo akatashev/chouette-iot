@@ -3,8 +3,8 @@ SingletonActor class.
 """
 import logging
 
-from pykka import ActorRef, ActorRegistry
-from pykka.gevent import GeventActor
+from pykka import ActorRef, ActorRegistry  # type: ignore
+from pykka.gevent import GeventActor  # type: ignore
 
 __all__ = ["SingletonActor"]
 

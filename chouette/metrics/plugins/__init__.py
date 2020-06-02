@@ -4,7 +4,7 @@ chouette.metrics.plugins
 # pylint: disable=too-few-public-methods
 from typing import Dict, Optional, Type
 
-from pykka import ActorRef
+from pykka import ActorRef  # type: ignore
 
 from chouette._singleton_actor import SingletonActor
 from ._dramatiq_collector import DramatiqCollector
