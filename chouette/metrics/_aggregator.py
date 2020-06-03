@@ -118,16 +118,14 @@ class MetricsAggregator(SingletonActor):
         Returns: Whether metrics were processed and cleaned up.
         """
         b_records = self.redis.ask(CollectValues("metrics", keys, wrapped=False))
-        merged_metrics = MetricsMerger.merge_metrics(b_records)
+        merged_metrics = MetricsMerger.merge_metrics(b_records, self.aggregate_interval)
         logger.info(
             "[%s] Merged %s raw metrics into %s Merged Metrics.",
             self.name,
             len(b_records),
             len(merged_metrics),
         )
-        wrapped_metrics = self.metrics_wrapper.wrap_metrics(
-            merged_metrics
-        )
+        wrapped_metrics = self.metrics_wrapper.wrap_metrics(merged_metrics)
         logger.info(
             "[%s] Wrapped %s Merged Metrics into %s Wrapped Metrics.",
             self.name,
@@ -169,7 +167,7 @@ class MetricsMerger:
 
     @staticmethod
     def group_metric_keys(
-        metric_keys: List[Tuple[bytes, float]], interval: int
+            metric_keys: List[Tuple[bytes, float]], interval: int
     ) -> List[List[bytes]]:
         """
         Takes a list of raw keys information, received from a storage and
@@ -193,7 +191,7 @@ class MetricsMerger:
         return result
 
     @classmethod
-    def merge_metrics(cls, b_records: List[bytes]) -> List[MergedMetric]:
+    def merge_metrics(cls, b_records: List[bytes], interval: int) -> List[MergedMetric]:
         """
         Takes a list of bytes presumably representing JSON encoded raw
         metrics and tries to cast them to a list of MergedMetrics.
@@ -204,9 +202,12 @@ class MetricsMerger:
 
         Args:
             b_records: List of bytes objects representing raw metrics.
+            interval: Flush interval value.
         Returns: List of MergedMetric objects.
         """
-        single_metrics = filter(None, map(cls._cast_to_metric, b_records))
+        single_metrics = filter(
+            None, [cls._cast_to_metric(record, interval) for record in b_records]
+        )
         grouped_metrics = groupby(single_metrics, lambda metric: metric.id)
         merged_metrics = [
             reduce(lambda a, b: a + b, metrics) for _, metrics in grouped_metrics
@@ -214,7 +215,7 @@ class MetricsMerger:
         return merged_metrics
 
     @staticmethod
-    def _cast_to_metric(b_record: bytes) -> Optional[MergedMetric]:
+    def _cast_to_metric(b_record: bytes, interval: int) -> Optional[MergedMetric]:
         """
         Gets a bytes object and tries to decode to a JSON it and cast it
         to a MergedMetric object.
@@ -223,6 +224,7 @@ class MetricsMerger:
 
         Args:
             b_record: Bytes object, presumably representing a raw metric.
+            interval: Flush interval value.
         Return: MergedMetric object or None.
         """
         try:
@@ -233,6 +235,7 @@ class MetricsMerger:
                 timestamps=[dict_metric["timestamp"]],
                 values=[dict_metric["value"]],
                 tags=dict_metric.get("tags"),
+                interval=interval,
             )
         except (json.JSONDecodeError, TypeError, KeyError):
             return None
