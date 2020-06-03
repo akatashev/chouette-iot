@@ -1,9 +1,9 @@
 """
 MetricsWrapper abstract class.
 """
-
+# pylint: disable=too-few-public-methods
 from abc import ABC, abstractmethod
-from typing import List
+from typing import Any, List
 
 from chouette.metrics import MergedMetric, WrappedMetric
 
@@ -28,7 +28,9 @@ class MetricsWrapper(ABC):
     """
 
     @classmethod
-    def wrap_metrics(cls, merged_metrics: List[MergedMetric]) -> List[WrappedMetric]:
+    def wrap_metrics(
+        cls, merged_metrics: List[MergedMetric], flush_interval: float = 10.0
+    ) -> List[WrappedMetric]:
         """
         This is the only public method of a MetricsWrapper.
 
@@ -37,14 +39,20 @@ class MetricsWrapper(ABC):
 
         Args:
             merged_metrics: List of MergedMetric objects with raw metrics.
+            flush_interval: Aggregation frequency in seconds.
         Returns: List of WrappedMetric objects ready to be sent to Datadog.
         """
-        metrics = [cls._wrap_metric(metric) for metric in merged_metrics]
+        metrics = [
+            cls._wrap_metric(merged_metric=metric, flush_interval=flush_interval)
+            for metric in merged_metrics
+        ]
         return sum(metrics, [])
 
     @classmethod
     @abstractmethod
-    def _wrap_metric(cls, merged_metric: MergedMetric) -> List[WrappedMetric]:
+    def _wrap_metric(
+        cls, merged_metric: MergedMetric, **kwargs: Any
+    ) -> List[WrappedMetric]:
         """
         Method that takes a single Merged Metric and casts it to a list
         of Wrapped Metrics.
@@ -53,4 +61,4 @@ class MetricsWrapper(ABC):
             merged_metric: A single MergedMetric to process.
         Returns: List of produced WrappedMetric objects.
         """
-        pass  # pragma: no cover
+        raise NotImplementedError("Use concrete Wrapper implementation.")  # pragma: no cover

@@ -1,6 +1,7 @@
 """
 Concrete implementation of a simple wrapper.
 """
+# pylint: disable=too-few-public-methods
 from typing import List
 
 from chouette.metrics import MergedMetric, WrappedMetric
@@ -28,7 +29,7 @@ class SimpleWrapper(MetricsWrapper):
     """
 
     @classmethod
-    def _wrap_metric(cls, merged_metric: MergedMetric) -> List[WrappedMetric]:
+    def _wrap_metric(cls, merged_metric: MergedMetric, **kwargs) -> List[WrappedMetric]:
         """
         This method determines what method to call to wrap this exact metric
         and calls it.

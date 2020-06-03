@@ -125,7 +125,9 @@ class MetricsAggregator(SingletonActor):
             len(b_records),
             len(merged_metrics),
         )
-        wrapped_metrics = self.metrics_wrapper.wrap_metrics(merged_metrics)
+        wrapped_metrics = self.metrics_wrapper.wrap_metrics(
+            merged_metrics, self.aggregate_interval
+        )
         logger.info(
             "[%s] Wrapped %s Merged Metrics into %s Wrapped Metrics.",
             self.name,

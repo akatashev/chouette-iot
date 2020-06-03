@@ -6,8 +6,9 @@ from typing import Optional
 
 from ._metrics_wrapper import MetricsWrapper
 from ._simple_wrapper import SimpleWrapper
+from ._datadog_wrapper import DatadogWrapper
 
-__all__ = ["SimpleWrapper", "WrappersFactory"]
+__all__ = ["SimpleWrapper", "WrappersFactory", "DatadogWrapper"]
 
 
 class WrappersFactory:
@@ -15,7 +16,7 @@ class WrappersFactory:
     WrapperFactory class creates Metrics Wrapper instances.
     """
 
-    wrapper_classes = {"simple": SimpleWrapper}
+    wrapper_classes = {"simple": SimpleWrapper, "datadog": DatadogWrapper}
 
     @classmethod
     def get_wrapper(cls, wrapper_name: str) -> Optional[MetricsWrapper]:

@@ -71,7 +71,7 @@ class MergedMetric(Metric):
     def __init__(self, **kwargs: Any):
         self.metric: str = kwargs["metric"]
         self.type: str = kwargs["type"]
-        self.values: List[float] = kwargs.get("values", [])
+        self.values: List[Any] = kwargs.get("values", [])
         self.timestamps: List[float] = kwargs.get("timestamps", [])
         self.tags: Dict[str, str] = kwargs.get("tags", {})
         self.s_tags: List[str] = self._stringify_tags(self.tags)
