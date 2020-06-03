@@ -167,7 +167,7 @@ class MetricsMerger:
 
     @staticmethod
     def group_metric_keys(
-            metric_keys: List[Tuple[bytes, float]], interval: int
+        metric_keys: List[Tuple[bytes, float]], interval: int
     ) -> List[List[bytes]]:
         """
         Takes a list of raw keys information, received from a storage and

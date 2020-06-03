@@ -3,7 +3,7 @@ Metrics classes to handle metrics processing.
 """
 # pylint: disable=too-few-public-methods
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 __all__ = ["MergedMetric", "RawMetric", "WrappedMetric"]
 
@@ -171,7 +171,7 @@ class WrappedMetric(SingleMetric):
         super().__init__(**kwargs)
         tags = kwargs.get("tags")
         self.tags: List[str] = sorted(tags) if tags else []
-        self.interval: int = kwargs.get("interval")
+        self.interval: Optional[int] = kwargs.get("interval")
 
     def asdict(self):
         """
