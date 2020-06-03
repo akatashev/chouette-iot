@@ -18,7 +18,12 @@ def test_wrap_count():
     AND: Its tags are a list of stringified MergedMetric tags.
     """
     expected_metric = WrappedMetric(
-        metric="test", type="count", value=6, timestamp=18, tags=["hello:world"]
+        metric="test",
+        type="count",
+        value=6,
+        timestamp=18,
+        tags=["hello:world"],
+        interval=10,
     )
     merged_metric = MergedMetric(
         metric="test",
@@ -59,6 +64,7 @@ def test_wrap_average(metric_type):
             value=3,
             timestamp=18,
             tags=["hello:world"],
+            interval=15,
         ),
     ]
     merged_metric = MergedMetric(
@@ -67,6 +73,7 @@ def test_wrap_average(metric_type):
         values=[1, 2, 3],
         timestamps=[18, 10, 12],
         tags={"hello": "world"},
+        interval=15,
     )
     result = SimpleWrapper.wrap_metrics([merged_metric])
     assert result == expected_metrics

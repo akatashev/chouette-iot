@@ -62,6 +62,7 @@ class SimpleWrapper(MetricsWrapper):
             timestamp=max(merged_metric.timestamps),
             value=sum(merged_metric.values),
             tags=merged_metric.s_tags,
+            interval=merged_metric.interval,
         )
         return [count_metric]
 
@@ -95,5 +96,6 @@ class SimpleWrapper(MetricsWrapper):
             timestamp=timestamp,
             value=metrics_count,
             tags=merged_metric.s_tags,
+            interval=merged_metric.interval,
         )
         return [average_metric, count_metric]

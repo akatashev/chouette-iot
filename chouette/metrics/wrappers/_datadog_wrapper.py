@@ -49,6 +49,17 @@ class DatadogWrapper(MetricsWrapper):
 
     @classmethod
     def _wrap_metric(cls, merged_metric: MergedMetric) -> List[WrappedMetric]:
+        """
+        Facade wrapper function of the Datadog Wrapper.
+
+        It processes: COUNT, GAUGE, RATE, SET and HISTOGRAM metrics.
+
+        All other kinds of metrics are ignored.
+
+        Args:
+            merged_metric: MergedMetric to wrap.
+        Returns: List of WrappedMetric produced by the wrapping method.
+        """
         methods = {
             "count": cls._wrap_count,
             "rate": cls._wrap_rate,
