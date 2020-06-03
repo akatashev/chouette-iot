@@ -66,7 +66,7 @@ class MergedMetric(Metric):
     and tags. Only MergedMetrics with the same id can be merged together.
     """
 
-    __slots__ = ["values", "timestamps", "id", "s_tags"]
+    __slots__ = ["values", "timestamps", "id", "s_tags", "interval"]
 
     def __init__(self, **kwargs: Any):
         self.metric: str = kwargs["metric"]
@@ -76,6 +76,7 @@ class MergedMetric(Metric):
         self.tags: Dict[str, str] = kwargs.get("tags", {})
         self.s_tags: List[str] = self._stringify_tags(self.tags)
         self.id: str = f"{self.metric}_{self.type}{'_'.join(self.s_tags)}"
+        self.interval = kwargs.get("interval", 10)
 
     @staticmethod
     def _stringify_tags(tags: Dict[str, str]) -> List[str]:
@@ -124,6 +125,7 @@ class MergedMetric(Metric):
             "values": self.values,
             "timestamps": self.timestamps,
             "type": self.type,
+            "interval": self.interval,
         }
 
 
@@ -163,10 +165,13 @@ class WrappedMetric(SingleMetric):
     by a developer.
     """
 
+    __slots__ = ["interval"]
+
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
         tags = kwargs.get("tags")
         self.tags: List[str] = sorted(tags) if tags else []
+        self.interval: int = kwargs.get("interval")
 
     def asdict(self):
         """
@@ -175,12 +180,15 @@ class WrappedMetric(SingleMetric):
 
         Return: Dict that represents the metric.
         """
-        return {
+        dict_representation = {
             "metric": self.metric,
             "tags": self.tags,
             "points": [[self.timestamp, self.value]],
             "type": self.type,
         }
+        if self.interval:
+            dict_representation.update({"interval": self.interval})
+        return dict_representation
 
 
 class RawMetric(SingleMetric):

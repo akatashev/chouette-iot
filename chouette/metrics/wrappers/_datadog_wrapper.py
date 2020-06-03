@@ -48,7 +48,7 @@ class DatadogWrapper(MetricsWrapper):
     histogram_aggregates = DatadogWrapperConfig().histogram_aggregates
 
     @classmethod
-    def _wrap_metric(cls, merged_metric: MergedMetric, **kwargs: Any) -> List[WrappedMetric]:
+    def _wrap_metric(cls, merged_metric: MergedMetric) -> List[WrappedMetric]:
         methods = {
             "count": cls._wrap_count,
             "rate": cls._wrap_rate,
@@ -59,10 +59,10 @@ class DatadogWrapper(MetricsWrapper):
         method = methods.get(merged_metric.type)
         if not method:
             return []
-        return method(merged_metric, **kwargs)
+        return method(merged_metric)
 
     @staticmethod
-    def _wrap_count(merged_metric: MergedMetric, **kwargs: Any) -> List[WrappedMetric]:
+    def _wrap_count(merged_metric: MergedMetric) -> List[WrappedMetric]:
         """
         Count metric is being simply wrapped into a metric whose value is a
         sum of all the values and whose timestamp is the earliest timestamp
@@ -78,11 +78,12 @@ class DatadogWrapper(MetricsWrapper):
             timestamp=min(merged_metric.timestamps),
             value=sum(merged_metric.values),
             tags=merged_metric.s_tags,
+            interval=merged_metric.interval,
         )
         return [count_metric]
 
     @classmethod
-    def _wrap_rate(cls, merged_metric: MergedMetric, **kwargs: Any) -> List[WrappedMetric]:
+    def _wrap_rate(cls, merged_metric: MergedMetric) -> List[WrappedMetric]:
         """
         Rate metric represents an approximate rate of event occurrences per
         one second of the flush interval.
@@ -94,18 +95,19 @@ class DatadogWrapper(MetricsWrapper):
             merged_metric: MergedMetric to wrap.
         Returns: List of WrappedMetric produced by the wrapping method.
         """
-        flush_interval = float(kwargs.get("flush_interval", 10))
+        flush_interval = float(merged_metric.interval)
         rate_metric = WrappedMetric(
             metric=merged_metric.metric,
             type=merged_metric.type,
             timestamp=min(merged_metric.timestamps),
             value=sum(merged_metric.values) / flush_interval,
             tags=merged_metric.s_tags,
+            interval=merged_metric.interval,
         )
         return [rate_metric]
 
     @staticmethod
-    def _wrap_gauge(merged_metric: MergedMetric, **kwargs: Any) -> List[WrappedMetric]:
+    def _wrap_gauge(merged_metric: MergedMetric) -> List[WrappedMetric]:
         """
         Gauge metric sends the latest received value without additional
         calculations. Its timestamp however is the earliest timestamp
@@ -127,7 +129,7 @@ class DatadogWrapper(MetricsWrapper):
         return [gauge_metric]
 
     @staticmethod
-    def _wrap_set(merged_metric: MergedMetric, **kwargs: Any) -> List[WrappedMetric]:
+    def _wrap_set(merged_metric: MergedMetric) -> List[WrappedMetric]:
         """
         Set metric is expected to have `Lists` in values. There lists
         should represent sets of data. Wrapper takes these lists and
@@ -156,13 +158,14 @@ class DatadogWrapper(MetricsWrapper):
                 timestamp=min(merged_metric.timestamps),
                 value=len(values_set),
                 tags=merged_metric.s_tags,
+                interval=merged_metric.interval,
             )
             return [set_count_metric]
         except TypeError:
             return []
 
     @classmethod
-    def _wrap_histogram(cls, merged_metric: MergedMetric, **kwargs: Any) -> List[WrappedMetric]:
+    def _wrap_histogram(cls, merged_metric: MergedMetric) -> List[WrappedMetric]:
         """
         Histogram metric wrapper implementation.
 
@@ -184,25 +187,26 @@ class DatadogWrapper(MetricsWrapper):
             merged_metric: MergedMetric to wrap.
         Returns: List of WrappedMetric produced by the wrapping method.
         """
-        flush_interval = float(kwargs.get("flush_interval", 10))
+        interval = float(merged_metric.interval)
         timestamp = min(merged_metric.timestamps)
         tags = merged_metric.tags
         values = merged_metric.values
         name = merged_metric.metric
         metrics_count = len(values)
         metrics_to_generate = [
-            (f"{name}.avg", "gauge", sum(values) / metrics_count),
-            (f"{name}.count", "rate", metrics_count / flush_interval),
-            (f"{name}.sum", "gauge", sum(values)),
-            (f"{name}.min", "gauge", min(values)),
-            (f"{name}.max", "gauge", max(values)),
-            (f"{name}.median", "gauge", cls._percentile(values, 0.5)),
+            (f"{name}.avg", "gauge", sum(values) / metrics_count, None),
+            (f"{name}.count", "rate", metrics_count / interval, int(interval)),
+            (f"{name}.sum", "gauge", sum(values), None),
+            (f"{name}.min", "gauge", min(values), None),
+            (f"{name}.max", "gauge", max(values), None),
+            (f"{name}.median", "gauge", cls._percentile(values, 0.5), None),
         ]
         percentiles_metrics_to_generate = [
             (
                 f"{name}.{int(percentile * 100)}percentile",
                 "gauge",
                 cls._percentile(values, percentile),
+                None,
             )
             for percentile in cls.histogram_percentiles
         ]
@@ -214,8 +218,9 @@ class DatadogWrapper(MetricsWrapper):
                 timestamp=timestamp,
                 value=value,
                 tags=tags,
+                interval=interval,
             )
-            for metric_name, metric_type, value in metrics_to_generate
+            for metric_name, metric_type, value, interval in metrics_to_generate
             if "percentile" in metric_name
             or metric_name.split(".")[-1] in cls.histogram_aggregates
         ]

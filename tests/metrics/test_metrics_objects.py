@@ -57,6 +57,7 @@ def test_merged_metric_str_and_repr():
         "values": [1],
         "timestamps": [2],
         "tags": ["test:test"],
+        "interval": 10,
     }
 
     metric = MergedMetric(
@@ -92,7 +93,7 @@ def test_raw_metric_str_and_repr():
     assert repr(metric) == f"<RawMetric: {str(metric_dict)}>"
 
 
-def test_wrapped_metric_str_and_repr():
+def test_wrapped_metric_str_and_repr_no_interval():
     """
     WrappedMetric:
     __str__, __repr__ and asdict tests.
@@ -105,6 +106,28 @@ def test_wrapped_metric_str_and_repr():
     }
 
     metric = WrappedMetric(metric="wrappedMetric", type="count", value=1, timestamp=2)
+    metric_dict = metric.asdict()
+    assert metric_dict == expected_dict
+    assert str(metric) == str(metric_dict)
+    assert repr(metric) == f"<WrappedMetric: {str(metric_dict)}>"
+
+
+def test_wrapped_metric_str_and_repr_with_interval():
+    """
+    WrappedMetric:
+    __str__, __repr__ and asdict tests.
+    """
+    expected_dict = {
+        "metric": "wrappedMetric",
+        "type": "count",
+        "points": [[2, 1]],
+        "tags": [],
+        "interval": 10,
+    }
+
+    metric = WrappedMetric(
+        metric="wrappedMetric", type="count", value=1, timestamp=2, interval=10
+    )
     metric_dict = metric.asdict()
     assert metric_dict == expected_dict
     assert str(metric) == str(metric_dict)
