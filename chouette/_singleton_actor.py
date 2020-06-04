@@ -3,15 +3,14 @@ SingletonActor class.
 """
 import logging
 
-from pykka import ActorRef, ActorRegistry  # type: ignore
-from pykka.gevent import GeventActor  # type: ignore
+from pykka import ActorRef, ActorRegistry, ThreadingActor  # type: ignore
 
 __all__ = ["SingletonActor"]
 
 logger = logging.getLogger("chouette")
 
 
-class SingletonActor(GeventActor):
+class SingletonActor(ThreadingActor):
     """
     SingletonActor is a wrapper around pykka actor objects.
 

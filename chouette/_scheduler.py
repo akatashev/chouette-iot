@@ -5,10 +5,8 @@ It won't work without patching time.sleep with gevent.sleep.
 """
 import logging
 import time
-from threading import Lock
+from threading import Lock, Timer
 from typing import Any, Callable, Optional
-
-from gevent import Greenlet, spawn_later  # type: ignore
 
 __all__ = ["Scheduler", "Cancellable"]
 
@@ -19,16 +17,16 @@ class Cancellable:
     """
     Signifies a delayed task that can be cancelled.
 
-    Built around a `Greenlet` object and is able to cancel it.
+    Built around a `Timer` object and is able to cancel it.
     For periodical jobs its `_timer` property is being updated on
     every run from a separated thread, so to avoid race conditions where
     in the middle of the `cancel` run another thread updates the `_timer`
     property with a non-cancelled timer, Lock is used.
     """
 
-    def __init__(self, timer: Optional[Greenlet]) -> None:
+    def __init__(self, timer: Optional[Timer]) -> None:
         self._cancelled: bool = False
-        self._timer: Optional[Greenlet] = timer
+        self._timer: Optional[Timer] = timer
         self._timer_lock: Lock = Lock()
 
     def is_cancelled(self) -> bool:
@@ -41,13 +39,13 @@ class Cancellable:
         """
         return self._cancelled
 
-    def set_timer(self, timer: Greenlet) -> bool:
+    def set_timer(self, timer: Timer) -> bool:
         """
         `_.timer` property setter to update timers for periodic jobs.
 
         There is no external getter for this property.
 
-        Cancelled Canellable objects shouldn't allow to update their timers.
+        Cancelled Cancellable objects shouldn't allow to update their timers.
 
         Args:
             timer (Timer): Timer object handling a delayed task execution.
@@ -75,8 +73,8 @@ class Cancellable:
                  the Cancellable timer.
         """
         with self._timer_lock:
-            if isinstance(self._timer, Greenlet):
-                self._timer.kill()
+            if isinstance(self._timer, Timer):
+                self._timer.cancel()
             if self.is_cancelled():
                 return False
             self._cancelled = True
@@ -103,7 +101,8 @@ class Scheduler:
             args: Arguments for the function provided as func.
         Returns: Cancellable object.
         """
-        timer = spawn_later(delay, func, *args)
+        timer = Timer(interval=delay, function=func, args=args)
+        timer.start()
         return Cancellable(timer)
 
     @classmethod
@@ -184,17 +183,13 @@ class Scheduler:
 
         started = time.time() + initial_delay
 
-        timer = spawn_later(
-            initial_delay,
-            cls._execute_and_update_cancellable,
-            cancellable,
-            interval,
-            func,
-            *args,
-            started=started,
-            precise=precise,
+        timer = Timer(
+            interval=initial_delay,
+            function=cls._execute_and_update_cancellable,
+            args=(cancellable, interval, func, *args),
+            kwargs={"started": started, "precise": precise},
         )
-
+        timer.start()
         cancellable.set_timer(timer)
         return cancellable
 
@@ -238,17 +233,13 @@ class Scheduler:
         try:
             if now > started:
                 func(*args)
-            timer = spawn_later(
-                delay,
-                cls._execute_and_update_cancellable,
-                cancellable,
-                interval,
-                func,
-                *args,
-                started=started,
-                precise=precise,
+            timer = Timer(
+                interval=delay,
+                function=cls._execute_and_update_cancellable,
+                args=(cancellable, interval, func, *args),
+                kwargs={"started": started, "precise": precise},
             )
-
+            timer.start()
             cancellable.set_timer(timer)
         except Exception:
             logger.error("Stopping periodic job because of exception.", exc_info=True)

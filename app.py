@@ -2,8 +2,6 @@ import logging
 import sys
 import time
 
-import gevent.monkey  # type: ignore
-gevent.monkey.patch_all()
 from pythonjsonlogger import jsonlogger  # type: ignore
 
 from chouette._singleton_actor import SingletonActor

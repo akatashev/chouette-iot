@@ -1,7 +1,7 @@
-gevent
 pydantic
 pykka
 python-json-logger
 redis
 requests
+requests-unixsocket
 psutil

@@ -1,4 +1,4 @@
-from gevent import sleep
+from time import sleep
 from threading import Timer
 
 import pytest
