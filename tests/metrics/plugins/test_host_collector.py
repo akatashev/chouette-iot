@@ -10,6 +10,7 @@ Normal interaction between Collectors and plugins MUST be non-blocking.
 from unittest.mock import patch
 
 import pytest
+import psutil
 
 from chouette.metrics import WrappedMetric
 from chouette.metrics.plugins import HostStatsCollector
@@ -170,5 +171,5 @@ def test_host_collector_collects_fs_metrics(test_actor, collector_ref):
     response = test_actor.ask("messages").pop()
     stats = list(response.stats)
     fs_metrics = [stat for stat in stats if "Chouette.host.fs" in stat.metric]
-    print(fs_metrics)
-    assert len(fs_metrics) == 2
+    partitions = {partition.device for partition in psutil.disk_partitions()}
+    assert len(fs_metrics) == 2 * len(partitions)
