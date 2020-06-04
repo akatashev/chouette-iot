@@ -1,15 +1,15 @@
 """
 chouette.metrics.plugins.K8sCollector
 """
-import json
-
 # pylint: disable=too-few-public-methods
+import json
 import logging
 from itertools import chain
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import requests
 from pydantic import BaseSettings
+from pykka import ActorDeadError  # type: ignore
 
 from chouette._singleton_actor import SingletonActor
 from ._collector_plugin import CollectorPlugin
@@ -83,7 +83,12 @@ class K8sCollector(SingletonActor):
                 self.k8s_url, self.certs, self.k8s_metrics
             )
             if hasattr(message.sender, "tell"):
-                message.sender.tell(StatsResponse(self.name, stats))
+                try:
+                    message.sender.tell(StatsResponse(self.name, stats))
+                except ActorDeadError:
+                    logger.warning(
+                        "[%s] Requester is stopped. Dropping message.", self.name
+                    )
 
 
 class K8sCollectorPlugin(CollectorPlugin):
@@ -224,7 +229,7 @@ class K8sCollectorPlugin(CollectorPlugin):
         """
         try:
             response = requests.get(url, cert=certs, verify=False, timeout=5)
-        except requests.RequestException as error:
+        except (requests.RequestException, IOError) as error:
             logger.warning(
                 "[K8sCollector] Could not collect data from %s due to %s", url, error
             )

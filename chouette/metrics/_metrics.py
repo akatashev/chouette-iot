@@ -141,7 +141,7 @@ class SingleMetric(Metric):
         self.type = kwargs["type"]
         self.value = kwargs["value"]
         timestamp = kwargs.get("timestamp")
-        self.timestamp = int(timestamp if timestamp else time.time())
+        self.timestamp = timestamp if timestamp else time.time()
 
 
 class WrappedMetric(SingleMetric):
@@ -189,6 +189,15 @@ class WrappedMetric(SingleMetric):
         if self.interval:
             dict_representation.update({"interval": self.interval})
         return dict_representation
+
+    def __hash__(self):
+        """
+        That's a dirty hack needed to avoid duplicated WrappedMetrics for
+        HostStatsCollector.
+
+        Return: Hash of a string representation of the metric.
+        """
+        return hash(self.__str__())
 
 
 class RawMetric(SingleMetric):

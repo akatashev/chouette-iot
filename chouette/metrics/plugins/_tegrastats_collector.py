@@ -11,6 +11,7 @@ from subprocess import Popen, PIPE
 from typing import Iterator, List
 
 from pydantic import BaseSettings
+from pykka import ActorDeadError  # type: ignore
 
 from chouette._singleton_actor import SingletonActor
 from ._collector_plugin import CollectorPlugin
@@ -64,7 +65,12 @@ class TegrastatsCollector(SingletonActor):
         if isinstance(message, StatsRequest):
             stats = TegrastatsPlugin.collect_stats(self.path, self.metrics)
             if hasattr(message.sender, "tell"):
-                message.sender.tell(StatsResponse(self.name, stats))
+                try:
+                    message.sender.tell(StatsResponse(self.name, stats))
+                except ActorDeadError:
+                    logger.warning(
+                        "[%s] Requester is stopped. Dropping message.", self.name
+                    )
 
 
 class TegrastatsPlugin(CollectorPlugin):

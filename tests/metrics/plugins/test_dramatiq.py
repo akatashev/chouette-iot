@@ -69,3 +69,28 @@ def test_dramatiq_collector_wraps_sizes():
     assert all(isinstance(metric, WrappedMetric) for metric in metrics)
     tags = sorted(metric.tags for metric in metrics)
     assert tags == sorted([["queue:queue1"], ["queue:queue2"], ["queue:queue3"]])
+
+
+def test_dramatiq_collector_does_not_crash_on_stopped_sender(test_actor, dramatiq_ref):
+    """
+    DramatiqCollector doesn't crash on stopped sender
+
+    GIVEN: I have a working DramatiqCollector actor.
+    WHEN: Some actor sends a StatsRequest and stops before it gets a response.
+    THEN: HostStatsCollector doesn't crash.
+    """
+    test_actor.stop()
+    dramatiq_ref.ask(StatsRequest(test_actor))
+    assert dramatiq_ref.is_alive()
+
+
+def test_dramatiq_collector_does_not_crash_on_wrong_sender(dramatiq_ref):
+    """
+    K8sCollectorPlugin doesn't crash on wrong sender.
+
+    GIVEN: I have a working DramatiqCollector actor.
+    WHEN: Some actor sends a StatsRequest with some gibberish as a sender.
+    THEN: HostStatsCollector doesn't crash.
+    """
+    dramatiq_ref.ask(StatsRequest("not an actor"))
+    assert dramatiq_ref.is_alive()

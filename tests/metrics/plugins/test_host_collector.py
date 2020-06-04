@@ -16,11 +16,16 @@ from chouette.metrics.plugins import HostStatsCollector
 from chouette.metrics.plugins.messages import StatsRequest, StatsResponse
 
 
-@pytest.fixture(scope="module")
-def collector_ref():
+@pytest.fixture
+def collector_ref(monkeypatch):
     """
     HostStatsCollector ActorRef fixture.
     """
+    monkeypatch.setenv(
+        "HOST_COLLECTOR_METRICS", '["cpu", "la", "ram", "network", "fs"]'
+    )
+    ref = HostStatsCollector.get_instance()
+    ref.stop()
     ref = HostStatsCollector.get_instance()
     yield ref
     ref.stop()
@@ -42,7 +47,7 @@ def test_host_collector_returns_stats_response(test_actor, collector_ref):
     response = test_actor.ask("messages").pop()
     assert isinstance(response, StatsResponse)
     assert response.producer == "HostStatsCollector"
-    stats = response.stats
+    stats = list(response.stats)
     assert all(isinstance(elem, WrappedMetric) for elem in stats)
 
 
@@ -70,7 +75,20 @@ def test_host_collector_ignores_cpu_percentage_zero(
     assert metric_exists == metric_must_exist
 
 
-def test_host_collector_does_not_crash_on_wrong_sender(test_actor, collector_ref):
+def test_host_collector_does_not_crash_on_stopped_sender(test_actor, collector_ref):
+    """
+    HostStatsCollector doesn't crash on stopped sender
+
+    GIVEN: I have a working HostStatsCollector actor.
+    WHEN: Some actor sends a StatsRequest and stops before it gets a response.
+    THEN: HostStatsCollector doesn't crash.
+    """
+    test_actor.stop()
+    collector_ref.ask(StatsRequest(test_actor))
+    assert collector_ref.is_alive()
+
+
+def test_host_collector_does_not_crash_on_wrong_sender(collector_ref):
     """
     HostStatsCollector doesn't crash on wrong sender.
 
@@ -78,7 +96,7 @@ def test_host_collector_does_not_crash_on_wrong_sender(test_actor, collector_ref
     WHEN: Some actor sends a StatsRequest with some gibberish as a sender.
     THEN: HostStatsCollector doesn't crash.
     """
-    collector_ref.ask(StatsRequest(test_actor))
+    collector_ref.ask(StatsRequest("not an actor"))
     assert collector_ref.is_alive()
 
 
@@ -103,3 +121,54 @@ def test_host_collector_can_collect_subset_of_metrics(
     cpu_metrics = [stat for stat in stats if "cpu" in stat.metric]
     assert cpu_metrics
     assert not non_cpu_metrics
+
+
+def test_host_collector_collects_ram_metrics(test_actor, collector_ref):
+    """
+    HostCollector returns RAM metrics.
+
+    GIVEN: 'ram' is specified in host_collector_metrics configuration.
+    WHEN: HostStatsCollector receives a StatRequest.
+    THEN: It collects and sends 2 `Chouette.host.memory` metrics along with
+          other metrics (used and available memory).
+    """
+    collector_ref.ask(StatsRequest(test_actor))
+    response = test_actor.ask("messages").pop()
+    stats = list(response.stats)
+    ram_metrics = [stat for stat in stats if "Chouette.host.memory" in stat.metric]
+    assert len(ram_metrics) == 2
+
+
+def test_host_collector_collects_network_metrics(test_actor, collector_ref):
+    """
+    HostCollector returns network metrics.
+
+    GIVEN: 'network' is specified in host_collector_metrics configuration.
+    AND: We have a single network interface.
+    WHEN: HostStatsCollector receives a StatRequest.
+    THEN: It collects and sends 2 `Chouette.host.network` metrics along with
+          other metrics (bytes.sent and bytes.recv).
+    """
+    collector_ref.ask(StatsRequest(test_actor))
+    response = test_actor.ask("messages").pop()
+    stats = list(response.stats)
+    network_metrics = [stat for stat in stats if "Chouette.host.network" in stat.metric]
+    assert len(network_metrics) == 2
+
+
+def test_host_collector_collects_fs_metrics(test_actor, collector_ref):
+    """
+    HostCollector returns fs metrics.
+
+    GIVEN: 'fs' is specified in host_collector_metrics configuration.
+    AND: We have a single device (even if it's mounted to numerous points).
+    WHEN: HostStatsCollector receives a StatRequest.
+    THEN: It collects and sends 2 "Chouette.host.fs" metrics along with other
+          metrics (used and free space on device).
+    """
+    collector_ref.ask(StatsRequest(test_actor))
+    response = test_actor.ask("messages").pop()
+    stats = list(response.stats)
+    fs_metrics = [stat for stat in stats if "Chouette.host.fs" in stat.metric]
+    print(fs_metrics)
+    assert len(fs_metrics) == 2

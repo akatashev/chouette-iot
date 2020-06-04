@@ -175,3 +175,28 @@ def test_k8s_plugin_parses_pod_metrics_no_pod_ref():
     """
     pod_stats = list(K8sCollectorPlugin._parse_pod_metrics({}))
     assert pod_stats == []
+
+
+def test_k8s_plugin_does_not_crash_on_stopped_sender(test_actor, k8s_ref):
+    """
+    K8sCollectorPlugin doesn't crash on stopped sender
+
+    GIVEN: I have a working K8sCollectorPlugin actor.
+    WHEN: Some actor sends a StatsRequest and stops before it gets a response.
+    THEN: HostStatsCollector doesn't crash.
+    """
+    test_actor.stop()
+    k8s_ref.ask(StatsRequest(test_actor))
+    assert k8s_ref.is_alive()
+
+
+def test_k8s_plugin_does_not_crash_on_wrong_sender(k8s_ref):
+    """
+    K8sCollectorPlugin doesn't crash on wrong sender.
+
+    GIVEN: I have a working K8sCollectorPlugin actor.
+    WHEN: Some actor sends a StatsRequest with some gibberish as a sender.
+    THEN: HostStatsCollector doesn't crash.
+    """
+    k8s_ref.ask(StatsRequest("not an actor"))
+    assert k8s_ref.is_alive()

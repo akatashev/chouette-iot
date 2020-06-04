@@ -153,3 +153,28 @@ def test_tegraplugin_get_ram_metrics_wrong_raw_string():
         TegrastatsPlugin._get_ram_metrics("VRAM 6266/7860MB CPU [20%@345]")
     )
     assert temp_metrics == []
+
+
+def test_tegraplugin_does_not_crash_on_stopped_sender(test_actor, tegraplugin_ref):
+    """
+    TegrastatsPlugin doesn't crash on stopped sender
+
+    GIVEN: I have a working TegrastatsPlugin actor.
+    WHEN: Some actor sends a StatsRequest and stops before it gets a response.
+    THEN: HostStatsCollector doesn't crash.
+    """
+    test_actor.stop()
+    tegraplugin_ref.ask(StatsRequest(test_actor))
+    assert tegraplugin_ref.is_alive()
+
+
+def test_tegraplugin_does_not_crash_on_wrong_sender(tegraplugin_ref):
+    """
+    TegrastatsPlugin doesn't crash on wrong sender.
+
+    GIVEN: I have a working TegrastatsPlugin actor.
+    WHEN: Some actor sends a StatsRequest with some gibberish as a sender.
+    THEN: HostStatsCollector doesn't crash.
+    """
+    tegraplugin_ref.ask(StatsRequest("not an actor"))
+    assert tegraplugin_ref.is_alive()

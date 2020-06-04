@@ -23,9 +23,8 @@ Its default value is `["cpu", "fs", "la", "ram"]`.
 * `cpu` collects CPU Usage percentage and returns a single `Chouette.host.cpu.percentage` metric.
 * `fs` collects data about filesystems usage. For every device that `psutil` can find, it returns 2 metrics: `Chouette.host.fs.used` and `Chouette.host.fs.free`. Their values are in bytes. They can be easily used to calculate used space percentage, for example. Sometimes Docker tricks psutil and tells it, that the same device is mounted more than once to different mountpoints. Plugin doesn't handle this situation, so if the same device is mounted twice, two sets of identic metrics will be sent.
 * `ram` collects data about RAM usage. It sends two metrics: `Chouette.host.memory.used` and `Chouette.host.memory.available`. Percentage and total amount of memory can be easily calculated using this data.
-* `la` collects Load Average values and sends the same metric `Chouette.host.la` with three different tags: `period:1m`, `period:5m`, `period:15m`. 
-
-`network` stats are not being collected, because them seem pretty useless, but it can always be changed.
+* `la` collects Load Average values and sends a `Chouette.host.la` metric with a tag `1m` that contains LA value for the last minute. `5m` and `15m` are available as well and can be uncommented.
+* `network` stats are not being collected by default. If they are turned on, two metrics are being sent for every interface but `lo`: `Chouette.host.network.bytes.sent` and `Chouette.host.network.bytes.recv`.
 
 ## Tegrastats Collector
 

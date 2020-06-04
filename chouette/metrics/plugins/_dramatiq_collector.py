@@ -7,6 +7,8 @@ import re
 from itertools import chain
 from typing import Iterator, List, Tuple
 
+from pykka import ActorDeadError  # type: ignore
+
 from chouette._singleton_actor import SingletonActor
 from chouette.storages import RedisStorage
 from chouette.storages._redis_messages import GetHashSizes, GetRedisQueues
@@ -46,7 +48,12 @@ class DramatiqCollector(SingletonActor):
             sizes = self.redis.ask(GetHashSizes(hashes))
             stats = DramatiqCollectorPlugin.wrap_queues_sizes(sizes)
             if hasattr(message.sender, "tell"):
-                message.sender.tell(StatsResponse(self.name, stats))
+                try:
+                    message.sender.tell(StatsResponse(self.name, stats))
+                except ActorDeadError:
+                    logger.warning(
+                        "[%s] Requester is stopped. Dropping message.", self.name
+                    )
 
 
 class DramatiqCollectorPlugin(CollectorPlugin):

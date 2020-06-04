@@ -6,8 +6,10 @@ import logging
 from itertools import chain
 from typing import Iterator, List
 
+import time
 import psutil  # type: ignore
 from pydantic import BaseSettings
+from pykka import ActorDeadError  # type: ignore
 
 from chouette._singleton_actor import SingletonActor
 from ._collector_plugin import CollectorPlugin
@@ -27,6 +29,7 @@ class HostCollectorConfig(BaseSettings):
     via an environment variable.
     """
 
+    # `network` stats also can be collected.
     host_collector_metrics: List[str] = ["cpu", "fs", "la", "ram"]
 
 
@@ -46,10 +49,13 @@ class HostStatsCollector(SingletonActor):
             "fs": HostCollectorPlugin.get_fs_metrics,
             "la": HostCollectorPlugin.get_la_metrics,
             "ram": HostCollectorPlugin.get_ram_metrics,
+            "network": HostCollectorPlugin.get_network_metrics,
         }
 
         metrics_to_send = HostCollectorConfig().host_collector_metrics
-        collection_methods = [host_methods.get(method) for method in metrics_to_send]
+        collection_methods = [
+            host_methods.get(method.lower()) for method in metrics_to_send
+        ]
         self.methods = [method for method in collection_methods if method]
 
     def on_receive(self, message: StatsRequest) -> None:
@@ -67,7 +73,12 @@ class HostStatsCollector(SingletonActor):
             metrics = map(lambda func: func(), self.methods)
             stats = chain.from_iterable(metrics)
             if hasattr(message.sender, "tell"):
-                message.sender.tell(StatsResponse(self.name, stats))
+                try:
+                    message.sender.tell(StatsResponse(self.name, stats))
+                except ActorDeadError:
+                    logger.warning(
+                        "[%s] Requester is stopped. Dropping message.", self.name
+                    )
 
 
 class HostCollectorPlugin(CollectorPlugin):
@@ -83,16 +94,18 @@ class HostCollectorPlugin(CollectorPlugin):
         Gets LA stats via 'getloadavg()' method:
         https://psutil.readthedocs.io/en/latest/#psutil.getloadavg
 
-        Returns a metric "Chouette.host.la" for 1m, 5m and 15m with
-        corresponding  tags.
+        Returns a metric "Chouette.host.la" for 1m LA value.
+        There is no real reason to send 5m and 15m metrics, but it's possible,
+        commented lines should be uncommented for this.
 
         Returns: Iterator over WrappedMetric objects.
         """
         min_1, min_5, min_15 = psutil.getloadavg()
         m1m = cls._wrap_metrics([("Chouette.host.la", min_1)], tags=["period:1m"])
-        m5m = cls._wrap_metrics([("Chouette.host.la", min_5)], tags=["period:5m"])
-        m15m = cls._wrap_metrics([("Chouette.host.la", min_15)], tags=["period:15m"])
-        return chain(m1m, m5m, m15m)
+        # m5m = cls._wrap_metrics([("Chouette.host.la", min_5)], tags=["period:5m"])
+        # m15m = cls._wrap_metrics([("Chouette.host.la", min_15)], tags=["period:15m"])
+        # return chain(m1m, m5m, m15m)
+        return m1m
 
     @classmethod
     def get_cpu_percentage(cls) -> Iterator:
@@ -124,18 +137,21 @@ class HostCollectorPlugin(CollectorPlugin):
         https://psutil.readthedocs.io/en/latest/#psutil.disk_partitions
 
         Sometimes Docker returns the same partition as being mounted
-        to few different mountpoints. This situation is not handled
-        here.
+        to few different mountpoints. To avoid duplicated metrics,
+        WrappedMetrics have __hash__ method and set is being used to
+        remove duplicates and send a correct number of metrics for every
+        device.
 
         Returns: Iterator over WrappedMetric objects.
         """
         filesystems = psutil.disk_partitions()
-        mapped = map(cls._process_filesystem, filesystems)
-        metrics = chain.from_iterable(mapped)
+        timestamp = time.time()
+        mapped = [cls._process_filesystem(fs, timestamp) for fs in filesystems]
+        metrics = chain(set(sum(mapped, [])))
         return metrics
 
     @classmethod
-    def _process_filesystem(cls, filesystem) -> Iterator:
+    def _process_filesystem(cls, filesystem, timestamp) -> List:
         """
         Gets specific filesystem disk usage stats.
 
@@ -157,7 +173,8 @@ class HostCollectorPlugin(CollectorPlugin):
             ("Chouette.host.fs.used", fs_usage.used),
             ("Chouette.host.fs.free", fs_usage.free),
         ]
-        return cls._wrap_metrics(collecting_metrics, tags=tags)
+        metrics = cls._wrap_metrics(collecting_metrics, tags=tags, timestamp=timestamp)
+        return list(metrics)
 
     @classmethod
     def get_ram_metrics(cls) -> Iterator:
@@ -179,3 +196,35 @@ class HostCollectorPlugin(CollectorPlugin):
             ("Chouette.host.memory.available", memory.available),
         ]
         return cls._wrap_metrics(collecting_metrics)
+
+    @classmethod
+    def get_network_metrics(cls) -> Iterator:
+        """
+        Gets amount of sent and received bytes for all the interfaces but lo.
+
+        Returns: Iterator over WrappedMetric objects.
+        """
+        interfaces_data = psutil.net_io_counters(pernic=True)
+        metrics = [
+            cls._process_iface(iface, data)
+            for iface, data in interfaces_data.items()
+            if iface != "lo"
+        ]
+        return chain.from_iterable(metrics)
+
+    @classmethod
+    def _process_iface(cls, iface: str, data):
+        """
+        Generates `bytes.sent` and `bytes.recv` metrics for a specified iface.
+
+        Args:
+            iface: Name of an interface for a tag.
+            data: `snetio` namedtuple with data about networking.
+        Returns: Iterator over WrappedMetric objects.
+        """
+        tags = [f"iface:{iface}"]
+        collecting_metrics = [
+            ("Chouette.host.network.bytes.sent", data.bytes_sent),
+            ("Chouette.host.network.bytes.recv", data.bytes_recv),
+        ]
+        return cls._wrap_metrics(collecting_metrics, tags=tags)
