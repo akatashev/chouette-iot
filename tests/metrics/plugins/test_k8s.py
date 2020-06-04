@@ -18,7 +18,9 @@ def k8s_ref(monkeypatch):
     monkeypatch.setenv("K8S_STATS_SERVICE_IP", "10.1.18.1")
     monkeypatch.setenv("K8S_CERT_PATH", "client.crt")
     monkeypatch.setenv("K8S_KEY_PATH", "client.key")
-    monkeypatch.setenv("K8S_METRICS", '["node", "pods"]')
+    monkeypatch.setenv(
+        "K8S_METRICS", ' {"node": ["inodes", "ram"], "pods": ["ram", "cpu"]}'
+    )
     actor_ref = K8sCollector.get_instance()
     yield actor_ref
     ActorRegistry.stop_all()
@@ -90,7 +92,9 @@ def test_k8s_plugin_collects_stats(k8s_stats_response):
         return_value=json.loads(k8s_stats_response),
     ):
         stats = list(
-            K8sCollectorPlugin.collect_stats("a", ("b", "c"), ["node", "pods"])
+            K8sCollectorPlugin.collect_stats(
+                "a", ("b", "c"), {"node": ["inodes", "ram"], "pods": ["ram", "cpu"]}
+            )
         )
     assert stats
     assert all(isinstance(stat, WrappedMetric) for stat in stats)
@@ -112,7 +116,9 @@ def test_k8s_plugin_collects_stats_empty(k8s_stats_response):
     """
     with patch.object(K8sCollectorPlugin, "_get_raw_metrics", return_value={}):
         stats = list(
-            K8sCollectorPlugin.collect_stats("a", ("b", "c"), ["node", "pods"])
+            K8sCollectorPlugin.collect_stats(
+                "a", ("b", "c"), {"node": ["inodes", "ram"], "pods": ["ram", "cpu"]}
+            )
         )
     assert stats == []
 
@@ -127,7 +133,7 @@ def test_k8s_plugin_parses_node_stats(k8s_stats_response):
     AND: All of these metrics have tags ["node_name:<node_name>"].
     """
     k8s_response = json.loads(k8s_stats_response)
-    node_stats = list(K8sCollectorPlugin._parse_node_metrics(k8s_response))
+    node_stats = list(K8sCollectorPlugin._parse_node_metrics(k8s_response, ["inodes"]))
     assert all(isinstance(stat, WrappedMetric) for stat in node_stats)
     assert all(stat.tags == ["node_name:nano"] for stat in node_stats)
 
@@ -141,7 +147,7 @@ def test_k8s_plugin_parses_node_stats_wrong_dict():
     WHEN: This dict is passed to the `_parse_node_metrics` method.
     THEN: It returns an empty iterator.
     """
-    node_stats = list(K8sCollectorPlugin._parse_node_metrics({}))
+    node_stats = list(K8sCollectorPlugin._parse_node_metrics({}, ["inodes"]))
     assert node_stats == []
 
 
@@ -155,7 +161,9 @@ def test_k8s_plugin_parses_pods_stats(k8s_stats_response):
     AND: There are metrics for every pod on the node.
     """
     k8s_response = json.loads(k8s_stats_response)
-    pods_stats = list(K8sCollectorPlugin._parse_pods_metrics(k8s_response))
+    pods_stats = list(
+        K8sCollectorPlugin._parse_pods_metrics(k8s_response, ["memory", "network"])
+    )
     assert all(isinstance(stat, WrappedMetric) for stat in pods_stats)
     assert all(
         stat.tags
@@ -173,7 +181,9 @@ def test_k8s_plugin_parses_pod_metrics_no_pod_ref():
     WHEN: This dict is passed to the `_parse_pod_metrics` method.
     THEN: It returns an empty iterator.
     """
-    pod_stats = list(K8sCollectorPlugin._parse_pod_metrics({}))
+    pod_stats = list(
+        K8sCollectorPlugin._parse_pod_metrics({}, ["network", "cpu", "ram"])
+    )
     assert pod_stats == []
 
 

@@ -41,16 +41,15 @@ class K8sCollectorConfig(BaseSettings):
     authorization.
     In microk8s it's usually /var/snap/microk8s/current/certs/server.key
 
-    K8S_METRICS is a list of metrics to collect. By default it's just pods,
-    because node information can be collected via other plugins and it's
-    likely to be more accurate.
+    K8S_METRICS is a structure that defines what metrics should be sent
+    to Datasog.
     """
 
     k8s_stats_service_ip: str
     k8s_stats_service_port: int = 10250
     k8s_cert_path: str  # Path to server.crt for microk8s
     k8s_key_path: str  # Path to server.key for microk8s
-    k8s_metrics: List[str] = ["pods"]
+    k8s_metrics: Dict[str, List[str]] = {"pods": ["memory", "cpu"], "node": ["inodes"]}
 
 
 class K8sCollector(SingletonActor):
@@ -65,7 +64,7 @@ class K8sCollector(SingletonActor):
         config = K8sCollectorConfig()
         self.k8s_url: str = f"https://{config.k8s_stats_service_ip}:" f"{config.k8s_stats_service_port}/stats/summary"
         self.certs: Tuple[str, str] = (config.k8s_cert_path, config.k8s_key_path)
-        self.k8s_metrics: List[str] = config.k8s_metrics
+        self.k8s_metrics: Dict[str, List[str]] = config.k8s_metrics
 
     def on_receive(self, message: StatsRequest) -> None:
         """
@@ -99,7 +98,7 @@ class K8sCollectorPlugin(CollectorPlugin):
 
     @classmethod
     def collect_stats(
-        cls, url: str, certs: Tuple[str, str], metrics: List[str]
+        cls, url: str, certs: Tuple[str, str], to_collect: Dict[str, List[str]]
     ) -> Iterator:
         """
         Gathers all the requested metrics and wraps them into an Iterator.
@@ -110,22 +109,22 @@ class K8sCollectorPlugin(CollectorPlugin):
             url: URL of a Stats Service to gather data from.
             certs: Tuple with paths of a client cert and a client key to
                    authorize.
-            metrics: List of types of metrics to collect.
+            to_collect: Dict with metrics configuration.
         Returns: Iterator over WrappedMetric objects.
         """
-        methods = {"node": cls._parse_node_metrics, "pods": cls._parse_pods_metrics}
         raw_metrics_dict = cls._get_raw_metrics(url, certs)
         if not raw_metrics_dict:
             return iter([])
         stats = [
-            methods[metric](raw_metrics_dict)
-            for metric in metrics
-            if methods.get(metric)
+            cls._parse_node_metrics(raw_metrics_dict, to_collect.get("node", [])),
+            cls._parse_pods_metrics(raw_metrics_dict, to_collect.get("pods", [])),
         ]
         return chain.from_iterable(stats)
 
     @classmethod
-    def _parse_node_metrics(cls, raw_metrics: Dict[str, Any]) -> Iterator:
+    def _parse_node_metrics(
+        cls, raw_metrics: Dict[str, Any], to_collect: List[str]
+    ) -> Iterator:
         """
         Gets a dict with a raw K8s Stats Service response and produces
         metrics based on its "node" content.
@@ -137,35 +136,42 @@ class K8sCollectorPlugin(CollectorPlugin):
 
         Args:
             raw_metrics: Dict containing K8s Stats Service response.
+            to_collect: List of node metrics to return.
         Returns: Iterator over WrappedMetric objects.
         """
-        prefix = "Chouette.k8s.node"
-        node_metrics = raw_metrics.get("node", {})
-        tags = [f"node_name:{node_metrics.get('nodeName')}"]
-        cpu = node_metrics.get("cpu", {})
-        ram = node_metrics.get("memory", {})
-        network = node_metrics.get("network", {})
-        filesystem = node_metrics.get("fs", {})
-        collected_metrics = filter(
-            lambda pair: pair[1],
-            [
-                (f"{prefix}.cpu.usageNanoCores", cpu.get("usageNanoCores")),
-                (f"{prefix}.cpu.usageCoreNanoSeconds", cpu.get("usageCoreNanoSeconds")),
-                (f"{prefix}.memory.rssBytes", ram.get("rssBytes")),
-                (f"{prefix}.memory.usageBytes", ram.get("usageBytes")),
-                (f"{prefix}.memory.availableBytes", ram.get("availableBytes")),
-                (f"{prefix}.memory.workingSetBytes", ram.get("workingSetBytes")),
-                (f"{prefix}.network.rxBytes", network.get("rxBytes")),
-                (f"{prefix}.network.txBytes", network.get("txBytes")),
-                (f"{prefix}.fs.inodesFree", filesystem.get("inodesFree")),
-                (f"{prefix}.fs.availableBytes", filesystem.get("availableBytes")),
-                (f"{prefix}.fs.usedBytes", filesystem.get("usedBytes")),
-            ],
+        node = raw_metrics.get("node")
+        if not node:
+            return iter([])
+        node_name = node.get("nodeName")
+        tags = [f"node_name:{node_name}"]
+        cpu = node.get("cpu", {}) if "cpu" in to_collect else {}
+        ram = node.get("memory", {}) if "ram" in to_collect else {}
+        network = node.get("network", {}) if "network" in to_collect else {}
+        f_system = node.get("fs", {}) if "filesystem" in to_collect else {}
+        inodes = (
+            node.get("fs", {}).get("inodesFree") if "inodes" in to_collect else None
         )
-        return cls._wrap_metrics(list(collected_metrics), tags=tags)
+        prefix = "Chouette.k8s.node"
+        stats = [
+            (f"{prefix}.cpu.usageNanoCores", cpu.get("usageNanoCores")),
+            (f"{prefix}.cpu.usageCoreNanoSeconds", cpu.get("usageCoreNanoSeconds")),
+            (f"{prefix}.memory.rssBytes", ram.get("rssBytes")),
+            (f"{prefix}.memory.usageBytes", ram.get("usageBytes")),
+            (f"{prefix}.memory.availableBytes", ram.get("availableBytes")),
+            (f"{prefix}.memory.workingSetBytes", ram.get("workingSetBytes")),
+            (f"{prefix}.network.rxBytes", network.get("rxBytes")),
+            (f"{prefix}.network.txBytes", network.get("txBytes")),
+            (f"{prefix}.fs.inodesFree", inodes),
+            (f"{prefix}.fs.availableBytes", f_system.get("availableBytes")),
+            (f"{prefix}.fs.usedBytes", f_system.get("usedBytes")),
+        ]
+        collected_metrics = [(name, value) for name, value in stats if value]
+        return cls._wrap_metrics(collected_metrics, tags=tags)
 
     @classmethod
-    def _parse_pods_metrics(cls, raw_metrics: Dict[str, Any]) -> Iterator:
+    def _parse_pods_metrics(
+        cls, raw_metrics: Dict[str, Any], to_collect: List[str]
+    ) -> Iterator:
         """
         Just a wrapper for a _parse_pod_metrics method.
 
@@ -174,14 +180,17 @@ class K8sCollectorPlugin(CollectorPlugin):
 
         Args:
             raw_metrics: Dict containing K8s Stats Service response.
+            to_collect: List of pod metrics to return.
         Returns: Iterator over WrappedMetric objects.
         """
         pods: List[Dict[str, Any]] = raw_metrics.get("pods", [])
-        metrics = [cls._parse_pod_metrics(pod_metrics) for pod_metrics in pods]
+        metrics = [
+            cls._parse_pod_metrics(pod_metrics, to_collect) for pod_metrics in pods
+        ]
         return chain.from_iterable(metrics)
 
     @classmethod
-    def _parse_pod_metrics(cls, pod_metrics: Dict[str, Any]) -> Iterator:
+    def _parse_pod_metrics(cls, pod: Dict[str, Any], to_collect: List[str]) -> Iterator:
         """
         Gets a dict with a pod stats description and casts it into an
         Iterator over metrics.
@@ -190,28 +199,30 @@ class K8sCollectorPlugin(CollectorPlugin):
         it can be expanded if necessary.
 
         Args:
-            pod_metrics: Dict containing pod data from K8s Stats Service response.
+            pod: Dict containing pod data from K8s Stats Service response.
+            to_collect: List of pod metrics to return.
         Returns: Iterator over WrappedMetric objects.
         """
-        prefix = "Chouette.k8s.pod"
-        pod_ref: Optional[Dict[str, str]] = pod_metrics.get("podRef")
+        pod_ref: Optional[Dict[str, str]] = pod.get("podRef")
         if not pod_ref:
             return iter([])
         tags = [
             f"namespace:{pod_ref.get('namespace')}",
             f"pod_name:{pod_ref.get('name')}",
         ]
-        cpu = pod_metrics.get("cpu", {})
-        ram = pod_metrics.get("memory", {})
-        collected_metrics = filter(
-            lambda pair: pair[1],
-            [
-                (f"{prefix}.cpu.usageNanoCores", cpu.get("usageNanoCores")),
-                (f"{prefix}.memory.rssBytes", ram.get("rssBytes")),
-                (f"{prefix}.memory.usageBytes", ram.get("usageBytes")),
-            ],
-        )
-        return cls._wrap_metrics(list(collected_metrics), tags=tags)
+        cpu = pod.get("cpu", {}) if "cpu" in to_collect else {}
+        ram = pod.get("memory", {}) if "memory" in to_collect else {}
+        network = pod.get("network", {}) if "network" in to_collect else {}
+        prefix = "Chouette.k8s.pod"
+        stats = [
+            (f"{prefix}.cpu.usageNanoCores", cpu.get("usageNanoCores")),
+            (f"{prefix}.memory.rssBytes", ram.get("rssBytes")),
+            (f"{prefix}.memory.usageBytes", ram.get("usageBytes")),
+            (f"{prefix}.network.rxBytes", network.get("rxBytes")),
+            (f"{prefix}.network.txBytes", network.get("txBytes")),
+        ]
+        collected_metrics = [(name, value) for name, value in stats if value]
+        return cls._wrap_metrics(collected_metrics, tags=tags)
 
     @staticmethod
     def _get_raw_metrics(url: str, certs: Tuple[str, str]) -> Dict[str, Any]:

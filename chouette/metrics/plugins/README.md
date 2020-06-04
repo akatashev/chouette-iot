@@ -51,7 +51,7 @@ It has no environment variables, because it collects the only metric: `Chouette.
 ## K8s Collector
 
 *Label*: `k8s`  
-*Purpose*: Mainly to monitor K8s pods state. There is an optional `node` metrics option, but HostStatsCollector data seems to be more accurate anyway.
+*Purpose*: Mainly to monitor K8s pods state. By default `node` metric returns only `inodesFree` metric that is not being returned by HostStatsCollector.
 
 It connects to a Stats Service using a URL `https://<K8S_STATS_SERVICE_IP>:<K8S_STATS_SERVICE_PORT>/stats/summary`, parses its output and wraps it into metrics.  
 This plugin was tested both with normal K8s installation and with microk8s.
@@ -61,6 +61,8 @@ It has the following environment variables:
 * `K8S_STATS_SERVICE_PORT` is a Stats Service's port. By default it's `10250`.
 * `K8S_CERT_PATH` is a path to a client certificate to pass the Stats Server authorization. In microk8s on the node it's usually `/var/snap/microk8s/current/certs/server.crt`. But this value really depends on this cert is represented in Choette's container.
 * `K8S_KEY_PATH` is a path to a client key to pass the Stats Server authorization. In microk8s on the node it's usually `/var/snap/microk8s/current/certs/server.key`.
-* `K8S_METRICS` is a list of metrics to collect. By default it's just pods, because node information can be collected via other plugins and it's likely to be more accurate.
+* `K8S_METRICS` is a structure that represents what metrics should be sent to Datadog. Default value is: `{"pods": ["memory", "cpu"], "node": ["inodes"]}`. It means that for every pod this Plugin collects memory and cpu stats, and for the node it returns amount of free inodes.  
+Possible options for `pods`: `["memory", "cpu", "network"]`.  
+For `node`: `["filesystem", "memory", "cpu", "inodes"]`.
 
 K8sCollector returns quite a lot of metrics, so it's easier to check its source file. Both node and pods metrics are actually only subsets of what K8s returns from its Stats Service, so it's quite expandable.
