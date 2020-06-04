@@ -8,7 +8,7 @@ from itertools import chain
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import requests
-from pydantic import BaseSettings
+from pydantic import BaseSettings, ValidationError
 from pykka import ActorDeadError  # type: ignore
 
 from chouette._singleton_actor import SingletonActor
@@ -60,11 +60,18 @@ class K8sCollector(SingletonActor):
 
     def __init__(self):
         super().__init__()
-
-        config = K8sCollectorConfig()
-        self.k8s_url: str = f"https://{config.k8s_stats_service_ip}:" f"{config.k8s_stats_service_port}/stats/summary"
-        self.certs: Tuple[str, str] = (config.k8s_cert_path, config.k8s_key_path)
-        self.k8s_metrics: Dict[str, List[str]] = config.k8s_metrics
+        try:
+            config = K8sCollectorConfig()
+            self.k8s_url: str = f"https://{config.k8s_stats_service_ip}:" f"{config.k8s_stats_service_port}/stats/summary"
+            self.certs: Tuple[str, str] = (config.k8s_cert_path, config.k8s_key_path)
+            self.k8s_metrics: Dict[str, List[str]] = config.k8s_metrics
+        except ValidationError:
+            self.k8s_url = None
+            logger.warning(
+                "[%s] Kubernetes configuration is not correct. Metrics won't be collected.",
+                self.name,
+                exc_info=True,
+            )
 
     def on_receive(self, message: StatsRequest) -> None:
         """
@@ -77,7 +84,7 @@ class K8sCollector(SingletonActor):
             message: Expected to be a StatsRequest message.
         """
         logger.debug("[%s] Received %s.", self.name, message)
-        if isinstance(message, StatsRequest):
+        if isinstance(message, StatsRequest) and self.k8s_url:
             stats = K8sCollectorPlugin.collect_stats(
                 self.k8s_url, self.certs, self.k8s_metrics
             )
