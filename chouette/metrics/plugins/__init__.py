@@ -7,12 +7,14 @@ from typing import Dict, Optional, Type
 from pykka import ActorRef  # type: ignore
 
 from chouette._singleton_actor import SingletonActor
+from ._docker_collector import DockerCollector
 from ._dramatiq_collector import DramatiqCollector
 from ._host_collector import HostStatsCollector
-from ._tegrastats_collector import TegrastatsCollector
 from ._k8s_collector import K8sCollector
+from ._tegrastats_collector import TegrastatsCollector
 
 __all__ = [
+    "DockerCollector",
     "DramatiqCollector",
     "HostStatsCollector",
     "K8sCollector",
@@ -31,6 +33,7 @@ class PluginsFactory:
         "host": HostStatsCollector,
         "k8s": K8sCollector,
         "tegrastats": TegrastatsCollector,
+        "docker": DockerCollector,
     }
 
     @classmethod
