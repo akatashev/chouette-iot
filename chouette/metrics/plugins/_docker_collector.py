@@ -49,6 +49,8 @@ class DockerCollectorPlugin(CollectorPlugin):
     @classmethod
     def collect_container_metrics(cls) -> Iterator:
         ids = cls._get_container_ids()
+        if not ids:
+            return iter([])
         with ThreadPoolExecutor(max_workers=len(ids)) as executor:
             futures = [executor.submit(cls._get_container_stats, ids)]
         wait(futures)
@@ -77,9 +79,9 @@ class DockerCollectorPlugin(CollectorPlugin):
             container_name = raw_stats["name"][1:]
         except (TypeError, RequestException, KeyError) as error:
             logger.warning(
-                "[DockerCollector]: Could not get stats for a container %s due to: %s",
+                "[DockerCollector]: Could not get stats for a container %s.",
                 cont_id,
-                error,
+                exc_info=True,
             )
             return iter([])
         tags = [f"container:{container_name}"]
