@@ -52,7 +52,7 @@ class DockerCollectorPlugin(CollectorPlugin):
         if not ids:
             return iter([])
         with ThreadPoolExecutor(max_workers=len(ids)) as executor:
-            futures = [executor.submit(cls._get_container_stats, ids)]
+            futures = [executor.submit(cls._get_container_stats, id) for id in ids]
         wait(futures)
         stats = [future.result() for future in futures]
         return chain.from_iterable(stats)
