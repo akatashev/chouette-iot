@@ -8,7 +8,7 @@ from typing import Iterator, List
 
 import time
 import psutil  # type: ignore
-from pydantic import BaseSettings
+from pydantic import BaseSettings  # type: ignore
 from pykka import ActorDeadError  # type: ignore
 
 from chouette._singleton_actor import SingletonActor

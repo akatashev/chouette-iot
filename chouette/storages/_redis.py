@@ -8,7 +8,7 @@ import time
 from typing import Any, List, Tuple, Union
 from uuid import uuid4
 
-from pydantic import BaseSettings
+from pydantic import BaseSettings  # type: ignore
 from redis import Redis, RedisError
 
 from chouette._singleton_actor import SingletonActor

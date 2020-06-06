@@ -5,7 +5,7 @@ Concrete simplified implementation of a Datadog wrapper.
 import math
 from typing import Any, List, Set
 
-from pydantic import BaseSettings
+from pydantic import BaseSettings  # type: ignore
 
 from chouette.metrics import MergedMetric, WrappedMetric
 from ._metrics_wrapper import MetricsWrapper

@@ -10,7 +10,7 @@ from itertools import chain
 from subprocess import Popen, PIPE
 from typing import Iterator, List
 
-from pydantic import BaseSettings
+from pydantic import BaseSettings  # type: ignore
 from pykka import ActorDeadError  # type: ignore
 
 from chouette._singleton_actor import SingletonActor

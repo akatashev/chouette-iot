@@ -3,7 +3,7 @@ chouette.ChouetteConfig
 """
 from typing import List
 
-from pydantic import BaseSettings
+from pydantic import BaseSettings  # type: ignore
 
 __all__ = ["ChouetteConfig"]
 

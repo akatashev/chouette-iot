@@ -8,7 +8,7 @@ from itertools import chain
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import requests
-from pydantic import BaseSettings, ValidationError
+from pydantic import BaseSettings, ValidationError  # type: ignore
 from pykka import ActorDeadError  # type: ignore
 
 from chouette._singleton_actor import SingletonActor
