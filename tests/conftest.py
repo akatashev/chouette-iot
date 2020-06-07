@@ -1,23 +1,38 @@
 import os
 
 import pytest
+import requests_mock
 from pykka import ActorRegistry
 from redis import Redis
-
-from chouette._singleton_actor import SingletonActor
-from chouette import ChouetteConfig
-import requests_mock
 from requests.exceptions import ConnectTimeout
+
+from chouette import ChouetteConfig
+from chouette._singleton_actor import SingletonActor
 
 
 @pytest.fixture(scope="session")
 def test_actor_class():
+    """
+    Test actor class fixture.
+    """
+
     class TestActor(SingletonActor):
+        """
+        TestActor class.
+        """
+
         def __init__(self):
             super().__init__()
             self.messages = []
 
         def on_receive(self, message):
+            """
+            On any message that is not a string "messages" or "count"
+            it adds this message to a list of received messages.
+
+            On "count" message it returns the size of this list.
+            On "messages" message it returns this list itself.
+            """
             if message == "messages":
                 return self.messages
             if message == "count":
@@ -59,6 +74,10 @@ def post_test_actors_stop():
 
 @pytest.fixture(scope="session")
 def metrics_keys():
+    """
+    Metrics keys fixture. Emulates how metrics keys are being returned
+    from Redis: (metric key, addition timestamp).
+    """
     return [
         (b"metric-uuid-1", 10),  # Keys group 1
         (b"metric-uuid-2", 12),  # Keys group 1
@@ -70,6 +89,10 @@ def metrics_keys():
 
 @pytest.fixture(scope="session")
 def raw_metrics_values():
+    """
+    Metrics values fixture. Emulates how metrics values are stored in Redis:
+    (metric key, metric value).
+    """
     return [
         (
             b"metric-uuid-1",
@@ -167,6 +190,13 @@ def mocked_http(monkeypatch, k8s_stats_response, docker_stats_response):
     /stats/notjson returns 200 OK with a not JSON body.
     /stats/exc raises a ConnectTimeout exception.
     /stats/wrongcred returns 401 Unauthorized.
+
+    Docker stats:
+    /containers/json returns a correct json list.
+    /not-json/json returns a not JSON body.
+    /conn-exc/json raises a ConnectionError.
+    /containers/123a/stats returns correct container stats.
+    /containers/456b/stats returns a not JSON body.
     """
     monkeypatch.setenv("API_KEY", "correct")
     monkeypatch.setenv("GLOBAL_TAGS", '["host:pytest"]')

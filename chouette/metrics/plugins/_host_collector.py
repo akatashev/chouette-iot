@@ -3,18 +3,18 @@ chouette.metrics.plugins.HostStatsCollector
 """
 # pylint: disable=too-few-public-methods
 import logging
+import time
 from itertools import chain
 from typing import Iterator, List
 
-import time
 import psutil  # type: ignore
 from pydantic import BaseSettings  # type: ignore
 from pykka import ActorDeadError  # type: ignore
 
 from chouette._singleton_actor import SingletonActor
+from chouette.metrics import WrappedMetric
 from ._collector_plugin import CollectorPlugin
 from .messages import StatsRequest, StatsResponse
-from chouette.metrics import WrappedMetric
 
 __all__ = ["HostStatsCollector"]
 

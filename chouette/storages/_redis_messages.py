@@ -1,6 +1,7 @@
 """
 Redis specific messages, being used to collect stats about Redis queues.
 """
+# pylint: disable=too-few-public-methods
 
 from typing import Iterator
 

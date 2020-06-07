@@ -12,7 +12,6 @@ services:
     links:
       - redis
     volumes:
-      - /usr/bin/docker:/usr/bin/docker
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - API_KEY=sdgdsgs

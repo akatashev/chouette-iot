@@ -66,3 +66,35 @@ Possible options for `pods`: `["memory", "cpu", "network"]`.
 For `node`: `["filesystem", "memory", "cpu", "inodes"]`.
 
 K8sCollector returns quite a lot of metrics, so it's easier to check its source file. Both node and pods metrics are actually only subsets of what K8s returns from its Stats Service, so it's quite expandable.
+
+## Docker Collector
+
+*Label*: `docker`  
+*Purpose:* Collect stats about Docker containers running on host.
+
+It connects to a Docker's unix socket to collect statistics about running containers. It returns two metrics for every container: `memory.usage` and `cpu.usage`.
+
+It has the only environment variable to control it:
+* `DOCKER_SOCKET_PATH` - path to  Docker socket file. Its default value is `/var/run/docker.sock`, so normally it doesn't need any configuration.
+
+To let this plugin to get data correctly it's necessary to add this socket file to a container via `volume` option.
+
+Configuration example from `docker-compose.yml`:
+
+```
+  services:
+  redis:
+    image: redis:5.0.5
+
+  chouette:
+    image: chouette-iot:0.1.0
+    links:
+      - redis
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - API_KEY=<your Datadog API key>
+      - GLOBAL_TAGS=["hostname:<your hostname>", <any tags you want to add>]
+      - COLLECTOR_PLUGINS=["host", "docker"]
+    command: python3 app.py
+```

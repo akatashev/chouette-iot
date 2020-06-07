@@ -12,14 +12,14 @@ from pydantic import BaseSettings  # type: ignore
 from redis import Redis, RedisError
 
 from chouette._singleton_actor import SingletonActor
-from chouette.storages.messages import (
+from ._redis_messages import GetRedisQueues, GetHashSizes
+from .messages import (
     CleanupOutdatedRecords,
     CollectKeys,
     CollectValues,
     DeleteRecords,
     StoreRecords,
 )
-from chouette.storages._redis_messages import GetRedisQueues, GetHashSizes
 
 __all__ = ["RedisStorage"]
 

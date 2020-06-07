@@ -10,11 +10,11 @@ from typing import Iterator, List, Tuple
 from pykka import ActorDeadError  # type: ignore
 
 from chouette._singleton_actor import SingletonActor
+from chouette.metrics import WrappedMetric
 from chouette.storages import RedisStorage
 from chouette.storages._redis_messages import GetHashSizes, GetRedisQueues
 from ._collector_plugin import CollectorPlugin
 from .messages import StatsRequest, StatsResponse
-from chouette.metrics import WrappedMetric
 
 __all__ = ["DramatiqCollector"]
 
