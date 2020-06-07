@@ -16,15 +16,6 @@ class MetricsWrapper(ABC):
 
     Its purpose is to take "raw" metrics sent by other applications and to
     cast them to standard Datadog metrics in a way that you prefer.
-
-    E.g.: When we use a @timer decorator in an application, in reality
-    5 metrics are being sent instead of 1 or 2.
-    What if you don't want to pay for these additional metrics, because
-    you don't need them at all?
-
-    You're able to create a custom MetricWrapper that will cast your "timer"
-    metric to the set of metrics that you prefer. To just one average or
-    just one max or just a median or whatever.
     """
 
     @classmethod
@@ -37,7 +28,6 @@ class MetricsWrapper(ABC):
 
         Args:
             merged_metrics: List of MergedMetric objects with raw metrics.
-            flush_interval: Aggregation frequency in seconds.
         Returns: List of WrappedMetric objects ready to be sent to Datadog.
         """
         metrics = [cls._wrap_metric(metric) for metric in merged_metrics]
