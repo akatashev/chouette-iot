@@ -82,7 +82,7 @@ To let this plugin to get data correctly it's necessary to add this socket file 
 Configuration example from `docker-compose.yml`:
 
 ```
-  services:
+services:
   redis:
     image: redis:5.0.5
 

@@ -4,10 +4,10 @@ MetricsCollector class.
 import logging
 from typing import Any
 
-from pykka import ActorRef  # type: ignore
+from pykka import ActorRef, ActorRegistry  # type: ignore
 
 from chouette import ChouetteConfig
-from chouette._singleton_actor import SingletonActor
+from chouette._singleton_actor import VitalActor
 from chouette.metrics.plugins import PluginsFactory
 from chouette.metrics.plugins.messages import StatsRequest, StatsResponse
 from chouette.storages import RedisStorage
@@ -18,10 +18,10 @@ logger = logging.getLogger("chouette")
 __all__ = ["MetricsCollector"]
 
 
-class MetricsCollector(SingletonActor):
+class MetricsCollector(VitalActor):
     """
-    Actor that is responsible for collecting various stats from a machine
-    and to store gathered data to Redis for later releasing.
+    Actor that is responsible for collecting various stats from a host
+    and to store gathered data to a storage for later releasing.
     """
 
     def __init__(self):
@@ -45,7 +45,7 @@ class MetricsCollector(SingletonActor):
         message.
 
         They are expected to respond with a StatsResponse message.
-        On this message MetricsCollector sends a request to Redis to store
+        On this message MetricsCollector sends a request to a storage to store
         received metrics.
 
         Args:

@@ -5,7 +5,7 @@ from itertools import groupby
 from typing import Any, List, Optional, Tuple
 
 from chouette import ChouetteConfig
-from chouette._singleton_actor import SingletonActor
+from chouette._singleton_actor import VitalActor
 from chouette.metrics import MergedMetric
 from chouette.metrics.wrappers import WrappersFactory
 from chouette.storages import RedisStorage
@@ -22,7 +22,7 @@ __all__ = ["MetricsAggregator"]
 logger = logging.getLogger("chouette")
 
 
-class MetricsAggregator(SingletonActor):
+class MetricsAggregator(VitalActor):
     """
     MetricsAggregator is an actor that is responsible for data aggregation.
     https://docs.datadoghq.com/developers/dogstatsd/data_aggregation/

@@ -63,10 +63,4 @@ class Chouette:
 
 if __name__ == "__main__":
     timers = Chouette.run()
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        for timer in timers:
-            timer.cancel()
-        ActorRegistry.stop_all()
+

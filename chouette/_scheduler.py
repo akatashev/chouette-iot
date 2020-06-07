@@ -6,7 +6,7 @@ It won't work without patching time.sleep with gevent.sleep.
 import logging
 import time
 from threading import Lock, Timer
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Set
 
 __all__ = ["Scheduler", "Cancellable"]
 
@@ -89,8 +89,19 @@ class Scheduler:
     after some delay.
     """
 
-    @staticmethod
-    def schedule_once(delay: float, func: Callable, *args: Any) -> Cancellable:
+    timers: Set[Cancellable] = set()
+
+    @classmethod
+    def stop_all(cls) -> None:
+        """
+        Stops all the cancellables in its timers set.
+        """
+        for cancellable in list(cls.timers):
+            cancellable.cancel()
+            cls.timers.remove(cancellable)
+
+    @classmethod
+    def schedule_once(cls, delay: float, func: Callable, *args: Any) -> Cancellable:
         """
         Takes a Callable function and its arguments and creates a timer to run
         it after `delay` seconds.
@@ -103,11 +114,13 @@ class Scheduler:
         """
         timer = Timer(interval=delay, function=func, args=args)
         timer.start()
-        return Cancellable(timer)
+        cancellable = Cancellable(timer)
+        cls.timers.add(cancellable)
+        return cancellable
 
     @classmethod
     def schedule_at_fixed_rate(
-        cls, initial_delay: float, interval: float, func: Callable, *args: Any
+            cls, initial_delay: float, interval: float, func: Callable, *args: Any
     ) -> Cancellable:
         """
         Takes a Callable function and its arguments and creates a timer to be
@@ -129,7 +142,7 @@ class Scheduler:
 
     @classmethod
     def schedule_with_fixed_delay(
-        cls, initial_delay: float, delay: float, func: Callable, *args: Any
+            cls, initial_delay: float, delay: float, func: Callable, *args: Any
     ) -> Cancellable:
         """
         Takes a Callable function and its arguments and creates a timer to be
@@ -152,12 +165,12 @@ class Scheduler:
 
     @classmethod
     def _execute_periodically(
-        cls,
-        initial_delay: float,
-        interval: float,
-        func: Callable,
-        *args: Any,
-        precise: bool,
+            cls,
+            initial_delay: float,
+            interval: float,
+            func: Callable,
+            *args: Any,
+            precise: bool,
     ) -> Cancellable:
         """
         A generic method to handle both precise and imprecise versions of
@@ -191,17 +204,18 @@ class Scheduler:
         )
         timer.start()
         cancellable.set_timer(timer)
+        cls.timers.add(cancellable)
         return cancellable
 
     @classmethod
     def _execute_and_update_cancellable(
-        cls,
-        cancellable: Cancellable,
-        interval: float,
-        func: Callable,
-        *args: Any,
-        started: float,
-        precise: bool,
+            cls,
+            cancellable: Cancellable,
+            interval: float,
+            func: Callable,
+            *args: Any,
+            started: float,
+            precise: bool,
     ) -> None:
         """
         A pseudo-callback function that creates a new Timer for the next

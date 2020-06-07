@@ -131,7 +131,7 @@ def test_schedule_once_is_cancellable(test_actor):
 
 
 def test_periodic_job_is_cancellable_before_the_first_run(
-    periodic_job_method, test_actor
+        periodic_job_method, test_actor
 ):
     """
     Periodic schedulers can be cancelled before the first run.
@@ -150,7 +150,7 @@ def test_periodic_job_is_cancellable_before_the_first_run(
 
 
 def test_periodic_job_is_cancellable_after_the_first_run(
-    periodic_job_method, test_actor
+        periodic_job_method, test_actor
 ):
     """
     Periodic schedulers can be cancelled after the first run.
@@ -193,7 +193,7 @@ def test_periodic_job_is_executed_periodically(periodic_job_method, test_actor):
 
 
 def test_periodic_job_stops_when_actor_is_stopped(
-    periodic_job_method, test_actor_class
+        periodic_job_method, test_actor_class
 ):
     """
     Periodic scheduler stops when its addressee dies.
@@ -208,3 +208,21 @@ def test_periodic_job_stops_when_actor_is_stopped(
     test_actor.stop()
     sleep(0.15)
     cancellable.cancel()
+
+
+def test_stop_all_cancellables():
+    """
+    Scheduler can stop all its cancellables.
+
+    GIVEN: There are few timers created.
+    WHEN: Scheduler.stop_all() method is called.
+    THEN: All these timers are cancelled.
+    AND: They are cleaned up from the Scheduler's `timers` set.
+    """
+    timer1 = Scheduler.schedule_once(1, print, "hello!")
+    timer2 = Scheduler.schedule_at_fixed_rate(1, 1, print, "world")
+    Scheduler.stop_all()
+    assert timer1.is_cancelled()
+    assert timer2.is_cancelled()
+    assert timer1 not in Scheduler.timers
+    assert timer2 not in Scheduler.timers

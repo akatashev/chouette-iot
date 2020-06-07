@@ -10,7 +10,7 @@ import requests
 from requests.exceptions import RequestException
 
 from chouette import ChouetteConfig
-from chouette._singleton_actor import SingletonActor
+from chouette._singleton_actor import VitalActor
 from chouette.metrics import RawMetric
 from chouette.storages import RedisStorage
 from chouette.storages.messages import (
@@ -26,7 +26,7 @@ __all__ = ["MetricsSender"]
 logger = logging.getLogger("chouette")
 
 
-class MetricsSender(SingletonActor):
+class MetricsSender(VitalActor):
     """
     MetricsSender is an actor that communicates to Datadog.
 

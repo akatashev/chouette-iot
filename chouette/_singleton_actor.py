@@ -4,8 +4,9 @@ SingletonActor class.
 import logging
 
 from pykka import ActorRef, ActorRegistry, ThreadingActor  # type: ignore
+from chouette import Scheduler
 
-__all__ = ["SingletonActor"]
+__all__ = ["SingletonActor", "VitalActor"]
 
 logger = logging.getLogger("chouette")
 
@@ -37,7 +38,7 @@ class SingletonActor(ThreadingActor):
         return cls.start()
 
     def on_failure(
-        self, exception_type: str, exception_value: str, traceback
+            self, exception_type: str, exception_value: str, traceback
     ) -> None:  # pragma: no cover
         """
         Logs an exception if the actor is crashed.
@@ -55,3 +56,21 @@ class SingletonActor(ThreadingActor):
             exception_value,
             exc_info=True,
         )
+
+
+class VitalActor(SingletonActor):
+    """
+    This class represents an actor, that can't be simply restarted.
+    If it stopped, the application is stopped with a critical error.
+    """
+
+    def on_failure(
+            self, exception_type: str, exception_value: str, traceback
+    ) -> None:
+        """
+        Stops all the actors and all the running timers.
+        """
+        super().on_failure(exception_type, exception_value, traceback)
+        logger.critical("[%s] Stopping Chouette.", self.name)
+        ActorRegistry.stop_all()
+        Scheduler.stop_all()
