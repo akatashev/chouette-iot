@@ -21,9 +21,9 @@ class CollectorPlugin(ABC):
         timestamp: float = None,
         tags: Optional[List[str]] = None,
         metric_type: str = "gauge",
-    ) -> Iterator:
+    ) -> Iterator[WrappedMetric]:
         """
-        Generates an iterator over WrappedMetric objects.
+        Generates a list of WrappedMetric objects.
 
         Args:
             metrics: List of (metric_name, metric_value) tuples.
@@ -32,13 +32,15 @@ class CollectorPlugin(ABC):
             metric_type: Metric type.
         Returns: Iterator over WrappedMetric objects.
         """
-        return map(
-            lambda metric: WrappedMetric(
-                metric=metric[0],
+        wrapped_metrics: List[WrappedMetric] = [
+            WrappedMetric(
+                metric=metric_name,
                 type=metric_type,
-                value=metric[1],
+                value=metric_value,
                 timestamp=timestamp,
                 tags=tags,
-            ),
-            metrics,
-        )
+            )
+            for metric_name, metric_value in metrics
+            if metric_value
+        ]
+        return iter(wrapped_metrics)

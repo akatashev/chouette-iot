@@ -224,7 +224,7 @@ class MetricsSender(SingletonActor):
                     dd_response.text,
                 )
                 return False
-        except RequestException as error:
+        except (RequestException, IOError) as error:
             logger.error(
                 "[%s] Could not dispatch metrics due to a HTTP error: %s",
                 self.datadog_url,

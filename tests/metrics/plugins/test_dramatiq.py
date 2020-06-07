@@ -86,7 +86,7 @@ def test_dramatiq_collector_does_not_crash_on_stopped_sender(test_actor, dramati
 
 def test_dramatiq_collector_does_not_crash_on_wrong_sender(dramatiq_ref):
     """
-    K8sCollectorPlugin doesn't crash on wrong sender.
+    DramatiqCollector doesn't crash on wrong sender.
 
     GIVEN: I have a working DramatiqCollector actor.
     WHEN: Some actor sends a StatsRequest with some gibberish as a sender.

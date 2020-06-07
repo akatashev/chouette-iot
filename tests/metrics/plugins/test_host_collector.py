@@ -126,7 +126,7 @@ def test_host_collector_can_collect_subset_of_metrics(
 
 def test_host_collector_collects_ram_metrics(test_actor, collector_ref):
     """
-    HostCollector returns RAM metrics.
+    HostStatsCollector returns RAM metrics.
 
     GIVEN: 'ram' is specified in host_collector_metrics configuration.
     WHEN: HostStatsCollector receives a StatRequest.
@@ -142,7 +142,7 @@ def test_host_collector_collects_ram_metrics(test_actor, collector_ref):
 
 def test_host_collector_collects_network_metrics(test_actor, collector_ref):
     """
-    HostCollector returns network metrics.
+    HostStatsCollector returns network metrics.
 
     GIVEN: 'network' is specified in host_collector_metrics configuration.
     AND: We have a single network interface.
@@ -159,7 +159,7 @@ def test_host_collector_collects_network_metrics(test_actor, collector_ref):
 
 def test_host_collector_collects_fs_metrics(test_actor, collector_ref):
     """
-    HostCollector returns fs metrics.
+    HostStatsCollector returns fs metrics.
 
     GIVEN: 'fs' is specified in host_collector_metrics configuration.
     AND: We have a single device (even if it's mounted to numerous points).

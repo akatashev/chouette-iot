@@ -14,6 +14,7 @@ from chouette.storages import RedisStorage
 from chouette.storages._redis_messages import GetHashSizes, GetRedisQueues
 from ._collector_plugin import CollectorPlugin
 from .messages import StatsRequest, StatsResponse
+from chouette.metrics import WrappedMetric
 
 __all__ = ["DramatiqCollector"]
 
@@ -62,7 +63,7 @@ class DramatiqCollectorPlugin(CollectorPlugin):
     """
 
     @classmethod
-    def wrap_queues_sizes(cls, sizes: List[Tuple[str, int]]) -> Iterator:
+    def wrap_queues_sizes(cls, sizes: List[Tuple[str, int]]) -> Iterator[WrappedMetric]:
         """
         Wraps received hashes sizes into WrappedMetrics.
 

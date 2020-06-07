@@ -189,9 +189,9 @@ def test_k8s_plugin_parses_pod_metrics_no_pod_ref():
 
 def test_k8s_plugin_does_not_crash_on_stopped_sender(test_actor, k8s_ref):
     """
-    K8sCollectorPlugin doesn't crash on stopped sender
+    K8sCollector doesn't crash on stopped sender
 
-    GIVEN: I have a working K8sCollectorPlugin actor.
+    GIVEN: I have a working K8sCollector actor.
     WHEN: Some actor sends a StatsRequest and stops before it gets a response.
     THEN: HostStatsCollector doesn't crash.
     """
@@ -202,9 +202,9 @@ def test_k8s_plugin_does_not_crash_on_stopped_sender(test_actor, k8s_ref):
 
 def test_k8s_plugin_does_not_crash_on_wrong_sender(k8s_ref):
     """
-    K8sCollectorPlugin doesn't crash on wrong sender.
+    K8sCollector doesn't crash on wrong sender.
 
-    GIVEN: I have a working K8sCollectorPlugin actor.
+    GIVEN: I have a working K8sCollector actor.
     WHEN: Some actor sends a StatsRequest with some gibberish as a sender.
     THEN: HostStatsCollector doesn't crash.
     """

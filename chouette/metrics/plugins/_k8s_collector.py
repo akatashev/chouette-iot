@@ -14,6 +14,7 @@ from pykka import ActorDeadError  # type: ignore
 from chouette._singleton_actor import SingletonActor
 from ._collector_plugin import CollectorPlugin
 from .messages import StatsRequest, StatsResponse
+from chouette.metrics import WrappedMetric
 
 __all__ = ["K8sCollector"]
 
@@ -106,7 +107,7 @@ class K8sCollectorPlugin(CollectorPlugin):
     @classmethod
     def collect_stats(
         cls, url: str, certs: Tuple[str, str], to_collect: Dict[str, List[str]]
-    ) -> Iterator:
+    ) -> Iterator[WrappedMetric]:
         """
         Gathers all the requested metrics and wraps them into an Iterator.
 
@@ -131,7 +132,7 @@ class K8sCollectorPlugin(CollectorPlugin):
     @classmethod
     def _parse_node_metrics(
         cls, raw_metrics: Dict[str, Any], to_collect: List[str]
-    ) -> Iterator:
+    ) -> Iterator[WrappedMetric]:
         """
         Gets a dict with a raw K8s Stats Service response and produces
         metrics based on its "node" content.
@@ -178,7 +179,7 @@ class K8sCollectorPlugin(CollectorPlugin):
     @classmethod
     def _parse_pods_metrics(
         cls, raw_metrics: Dict[str, Any], to_collect: List[str]
-    ) -> Iterator:
+    ) -> Iterator[WrappedMetric]:
         """
         Just a wrapper for a _parse_pod_metrics method.
 
@@ -197,7 +198,9 @@ class K8sCollectorPlugin(CollectorPlugin):
         return chain.from_iterable(metrics)
 
     @classmethod
-    def _parse_pod_metrics(cls, pod: Dict[str, Any], to_collect: List[str]) -> Iterator:
+    def _parse_pod_metrics(
+        cls, pod: Dict[str, Any], to_collect: List[str]
+    ) -> Iterator[WrappedMetric]:
         """
         Gets a dict with a pod stats description and casts it into an
         Iterator over metrics.

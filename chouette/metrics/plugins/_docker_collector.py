@@ -15,6 +15,7 @@ from pykka import ActorDeadError  # type: ignore
 from requests import RequestException
 
 from chouette._singleton_actor import SingletonActor
+from chouette.metrics import WrappedMetric
 from ._collector_plugin import CollectorPlugin
 from .messages import StatsRequest, StatsResponse
 
@@ -67,7 +68,7 @@ class DockerCollector(SingletonActor):
         """
         logger.debug("[%s] Received %s.", self.name, message)
         if isinstance(message, StatsRequest):
-            stats = DockerCollectorPlugin.collect_container_metrics(self.docker_url)
+            stats = DockerCollectorPlugin.collect_metrics(self.docker_url)
             if hasattr(message.sender, "tell"):
                 try:
                     message.sender.tell(StatsResponse(self.name, stats))
@@ -84,7 +85,7 @@ class DockerCollectorPlugin(CollectorPlugin):
     """
 
     @classmethod
-    def collect_container_metrics(cls, docker_url: str) -> Iterator:
+    def collect_metrics(cls, docker_url: str) -> Iterator[WrappedMetric]:
         """
         Facade function of DockerCollectorPlugin.
 
@@ -99,7 +100,7 @@ class DockerCollectorPlugin(CollectorPlugin):
             docker_url: Docker URL for requests-unixsocket library.
         Returns: Iterator over WrappedMetric objects.
         """
-        ids = cls._get_container_ids(docker_url)
+        ids = cls._get_containers_ids(docker_url)
         if not ids:
             return iter([])
         # Generating futures:
@@ -115,7 +116,7 @@ class DockerCollectorPlugin(CollectorPlugin):
         return chain.from_iterable(stats)
 
     @classmethod
-    def _get_container_ids(cls, docker_url: str) -> List[str]:
+    def _get_containers_ids(cls, docker_url: str) -> List[str]:
         """
         Connects to a docker socket file, gets a list of all running
         containers and extracts their ids for individual container stats
@@ -127,7 +128,7 @@ class DockerCollectorPlugin(CollectorPlugin):
         """
         try:
             containers = requests_unixsocket.get(f"{docker_url}/json").json()
-        except (TypeError, RequestException, json.JSONDecodeError) as error:
+        except (TypeError, RequestException, json.JSONDecodeError, IOError) as error:
             logger.warning(
                 "[DockerCollector]: Could not get a list of containers due to: %s",
                 error,
@@ -137,7 +138,9 @@ class DockerCollectorPlugin(CollectorPlugin):
         return ids
 
     @classmethod
-    def _get_container_stats(cls, container_id: str, docker_url: str) -> Iterator:
+    def _get_container_stats(
+        cls, container_id: str, docker_url: str
+    ) -> Iterator[WrappedMetric]:
         """
         Connects to a docker socket file and collects stats about a specified
         container.
@@ -157,7 +160,7 @@ class DockerCollectorPlugin(CollectorPlugin):
             raw_stats = requests_unixsocket.get(
                 f"{docker_url}/{container_id}/stats?stream=false"
             ).json()
-        except (TypeError, RequestException, json.JSONDecodeError):
+        except (TypeError, RequestException, json.JSONDecodeError, IOError):
             logger.warning(
                 "[DockerCollector]: Could not get stats for a container %s.",
                 container_id,

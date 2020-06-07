@@ -14,6 +14,7 @@ from pykka import ActorDeadError  # type: ignore
 from chouette._singleton_actor import SingletonActor
 from ._collector_plugin import CollectorPlugin
 from .messages import StatsRequest, StatsResponse
+from chouette.metrics import WrappedMetric
 
 __all__ = ["HostStatsCollector"]
 
@@ -89,7 +90,7 @@ class HostCollectorPlugin(CollectorPlugin):
     """
 
     @classmethod
-    def get_la_metrics(cls) -> Iterator:
+    def get_la_metrics(cls) -> Iterator[WrappedMetric]:
         """
         Gets LA stats via 'getloadavg()' method:
         https://psutil.readthedocs.io/en/latest/#psutil.getloadavg
@@ -108,7 +109,7 @@ class HostCollectorPlugin(CollectorPlugin):
         return m1m
 
     @classmethod
-    def get_cpu_percentage(cls) -> Iterator:
+    def get_cpu_percentage(cls) -> Iterator[WrappedMetric]:
         """
         Gets CPU percentage stats via 'cpu_percent()' method:
         https://psutil.readthedocs.io/en/latest/#psutil.cpu_percent
@@ -126,7 +127,7 @@ class HostCollectorPlugin(CollectorPlugin):
         return cls._wrap_metrics(collecting_metrics)
 
     @classmethod
-    def get_fs_metrics(cls) -> Iterator:
+    def get_fs_metrics(cls) -> Iterator[WrappedMetric]:
         """
         Gets disks usage stats.
 
@@ -147,11 +148,12 @@ class HostCollectorPlugin(CollectorPlugin):
         filesystems = psutil.disk_partitions()
         timestamp = time.time()
         mapped = [cls._process_filesystem(fs, timestamp) for fs in filesystems]
-        metrics = chain(set(sum(mapped, [])))
+        # Duplication removing hack:
+        metrics = iter(set(sum(list(mapped), [])))
         return metrics
 
     @classmethod
-    def _process_filesystem(cls, filesystem, timestamp) -> List:
+    def _process_filesystem(cls, filesystem, timestamp) -> Iterator[WrappedMetric]:
         """
         Gets specific filesystem disk usage stats.
 
@@ -174,10 +176,10 @@ class HostCollectorPlugin(CollectorPlugin):
             ("Chouette.host.fs.free", fs_usage.free),
         ]
         metrics = cls._wrap_metrics(collecting_metrics, tags=tags, timestamp=timestamp)
-        return list(metrics)
+        return metrics
 
     @classmethod
-    def get_ram_metrics(cls) -> Iterator:
+    def get_ram_metrics(cls) -> Iterator[WrappedMetric]:
         """
         Gets memory usage stats via `virtual_memory` method.
 
@@ -198,7 +200,7 @@ class HostCollectorPlugin(CollectorPlugin):
         return cls._wrap_metrics(collecting_metrics)
 
     @classmethod
-    def get_network_metrics(cls) -> Iterator:
+    def get_network_metrics(cls) -> Iterator[WrappedMetric]:
         """
         Gets amount of sent and received bytes for all the interfaces but lo.
 
@@ -213,7 +215,7 @@ class HostCollectorPlugin(CollectorPlugin):
         return chain.from_iterable(metrics)
 
     @classmethod
-    def _process_iface(cls, iface: str, data):
+    def _process_iface(cls, iface: str, data) -> Iterator[WrappedMetric]:
         """
         Generates `bytes.sent` and `bytes.recv` metrics for a specified iface.
 
