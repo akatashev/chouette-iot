@@ -1,26 +1,32 @@
+"""
+Chouette __main__ entry point.
+"""
 import logging
 import sys
 import time
+from typing import List, Type
 
 from pythonjsonlogger import jsonlogger  # type: ignore
 
-from chouette._singleton_actor import SingletonActor
-
-from pykka import ActorRegistry  # type: ignore
-from typing import List, Type
-
 from chouette import Scheduler, ChouetteConfig, Cancellable
+from chouette._singleton_actor import SingletonActor
 from chouette.metrics import MetricsCollector, MetricsAggregator, MetricsSender
 
 logger = logging.getLogger("chouette")
 
 
 class Chouette:
+    """
+    Chouette entry point class that creates vital actors and their timers.
+    """
+
     @staticmethod
     def setup_logging(log_level: str) -> None:
         """
         Configures logger to use JSON format and set s the desired log level.
 
+        Args:
+            log_level: Desired log level.
         Returns: None
         """
         stdout_handler = logging.StreamHandler(sys.stdout)
@@ -34,6 +40,16 @@ class Chouette:
     def schedule_call(
             interval, actor_class: Type[SingletonActor], message
     ) -> Cancellable:
+        """
+        Uses chouette.Scheduler to periodically send a message to an actor of
+        a specified class at some fixed rate.
+
+        Args:
+            interval: How often a message must be sent to an actor.
+            actor_class: Class of a SingleActor child class to start.
+            message: Message to send.
+        Returns: Cancellable object.
+        """
         actor_ref = actor_class.get_instance()
         initial_delay = interval - (time.time() % interval)
         timer = Scheduler.schedule_at_fixed_rate(
@@ -43,6 +59,16 @@ class Chouette:
 
     @classmethod
     def run(cls) -> List[Cancellable]:
+        """
+        Reads configuration from environment variables and creates timers to
+        send messages to created actors.
+
+        It starts a Sender actor and an Aggregator actor.
+        If COLLECTOR_PLUGINS environment variable is set, it also starts a
+        Collector plugin.
+
+        Returns: List of Cancellables.
+        """
         timers = []
         config = ChouetteConfig()
         cls.setup_logging(config.log_level)
@@ -62,5 +88,4 @@ class Chouette:
 
 
 if __name__ == "__main__":
-    timers = Chouette.run()
-
+    Chouette.run()

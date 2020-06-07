@@ -120,7 +120,7 @@ class Scheduler:
 
     @classmethod
     def schedule_at_fixed_rate(
-            cls, initial_delay: float, interval: float, func: Callable, *args: Any
+        cls, initial_delay: float, interval: float, func: Callable, *args: Any
     ) -> Cancellable:
         """
         Takes a Callable function and its arguments and creates a timer to be
@@ -142,7 +142,7 @@ class Scheduler:
 
     @classmethod
     def schedule_with_fixed_delay(
-            cls, initial_delay: float, delay: float, func: Callable, *args: Any
+        cls, initial_delay: float, delay: float, func: Callable, *args: Any
     ) -> Cancellable:
         """
         Takes a Callable function and its arguments and creates a timer to be
@@ -165,12 +165,12 @@ class Scheduler:
 
     @classmethod
     def _execute_periodically(
-            cls,
-            initial_delay: float,
-            interval: float,
-            func: Callable,
-            *args: Any,
-            precise: bool,
+        cls,
+        initial_delay: float,
+        interval: float,
+        func: Callable,
+        *args: Any,
+        precise: bool,
     ) -> Cancellable:
         """
         A generic method to handle both precise and imprecise versions of
@@ -209,13 +209,13 @@ class Scheduler:
 
     @classmethod
     def _execute_and_update_cancellable(
-            cls,
-            cancellable: Cancellable,
-            interval: float,
-            func: Callable,
-            *args: Any,
-            started: float,
-            precise: bool,
+        cls,
+        cancellable: Cancellable,
+        interval: float,
+        func: Callable,
+        *args: Any,
+        started: float,
+        precise: bool,
     ) -> None:
         """
         A pseudo-callback function that creates a new Timer for the next

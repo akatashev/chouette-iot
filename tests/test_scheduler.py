@@ -131,7 +131,7 @@ def test_schedule_once_is_cancellable(test_actor):
 
 
 def test_periodic_job_is_cancellable_before_the_first_run(
-        periodic_job_method, test_actor
+    periodic_job_method, test_actor
 ):
     """
     Periodic schedulers can be cancelled before the first run.
@@ -150,7 +150,7 @@ def test_periodic_job_is_cancellable_before_the_first_run(
 
 
 def test_periodic_job_is_cancellable_after_the_first_run(
-        periodic_job_method, test_actor
+    periodic_job_method, test_actor
 ):
     """
     Periodic schedulers can be cancelled after the first run.
@@ -193,7 +193,7 @@ def test_periodic_job_is_executed_periodically(periodic_job_method, test_actor):
 
 
 def test_periodic_job_stops_when_actor_is_stopped(
-        periodic_job_method, test_actor_class
+    periodic_job_method, test_actor_class
 ):
     """
     Periodic scheduler stops when its addressee dies.

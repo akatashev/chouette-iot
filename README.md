@@ -10,6 +10,8 @@
 
 It uses Redis as a broker for metrics from other applications and as a storage for ready to dispatch metrics. Periodically it tries to dispatch data to Datadog. If it doesn't happen for some reason, metrics are being preserved in their queue to be dispatched later, when connectivity is restored or Chouette is redeployed with correct configuration.
 
+Chouette design description can be found [here](./chouette/README.md).
+
 ## Metrics collection agent?
 
 Chouette is expected to run along with Redis and monitored applications in a system handled by **Kubernetes** (e.g. [microk8s](https://microk8s.io/)) or **Docker-compose**. It can be run in other environments, but it was designed to be used as a container in some kind of an orchestrator.

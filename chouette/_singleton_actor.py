@@ -38,7 +38,7 @@ class SingletonActor(ThreadingActor):
         return cls.start()
 
     def on_failure(
-            self, exception_type: str, exception_value: str, traceback
+        self, exception_type: str, exception_value: str, traceback
     ) -> None:  # pragma: no cover
         """
         Logs an exception if the actor is crashed.
@@ -64,9 +64,7 @@ class VitalActor(SingletonActor):
     If it stopped, the application is stopped with a critical error.
     """
 
-    def on_failure(
-            self, exception_type: str, exception_value: str, traceback
-    ) -> None:
+    def on_failure(self, exception_type: str, exception_value: str, traceback) -> None:
         """
         Stops all the actors and all the running timers.
         """
