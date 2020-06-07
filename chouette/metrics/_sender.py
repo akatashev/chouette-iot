@@ -179,19 +179,7 @@ class MetricsSender(VitalActor):
         if not dispatched:
             return False
         if self.send_self_metrics:
-            self_metrics = [
-                RawMetric(
-                    metric="chouette.dispatched.metrics.number",
-                    type="count",
-                    value=metrics_num,
-                ),
-                RawMetric(
-                    metric="chouette.dispatched.metrics.bytes",
-                    type="count",
-                    value=message_size,
-                ),
-            ]
-            self.redis.tell(StoreRecords("metrics", self_metrics, wrapped=False))
+            self._send_self_metrics(metrics_num, message_size)
         return True
 
     def _post_to_datadog(self, message: bytes) -> bool:
@@ -232,3 +220,27 @@ class MetricsSender(VitalActor):
             )
             return False
         return True
+
+    def _send_self_metrics(self, metrics_num: int, message_size: int) -> None:
+        """
+        Stores data about how many metrics were sent to Datadog
+        and their size in bytes.
+
+        Args:
+            metrics_num: Number of dispatched metrics.
+            message_size: Size of a sent message in bytes.
+        Returns: None.
+        """
+        self_metrics = [
+            RawMetric(
+                metric="chouette.dispatched.metrics.number",
+                type="count",
+                value=metrics_num,
+            ),
+            RawMetric(
+                metric="chouette.dispatched.metrics.bytes",
+                type="count",
+                value=message_size,
+            ),
+        ]
+        self.redis.tell(StoreRecords("metrics", self_metrics, wrapped=False))
