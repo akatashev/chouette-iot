@@ -147,9 +147,9 @@ class HostCollectorPlugin(CollectorPlugin):
         """
         filesystems = psutil.disk_partitions()
         timestamp = time.time()
-        mapped = [cls._process_filesystem(fs, timestamp) for fs in filesystems]
+        mapped = [list(cls._process_filesystem(fs, timestamp)) for fs in filesystems]
         # Duplication removing hack:
-        metrics = iter(set(sum(list(mapped), [])))
+        metrics = iter(set(sum(mapped, [])))
         return metrics
 
     @classmethod
