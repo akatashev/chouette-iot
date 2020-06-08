@@ -176,7 +176,7 @@ def docker_stats_response():
 
 
 @pytest.fixture
-def mocked_http(monkeypatch, k8s_stats_response, docker_stats_response):
+def mocked_http(monkeypatch, k8s_stats_response, docker_stats_response, requests_mock):
     """
     Datadog host, K8s stats and Docker stats mocking fixture.
 
@@ -203,26 +203,25 @@ def mocked_http(monkeypatch, k8s_stats_response, docker_stats_response):
     monkeypatch.setenv("METRICS_BULK_SIZE", "3")
     monkeypatch.setenv("DATADOG_URL", "https://choeutte-iot.mock")
     datadog_url = ChouetteConfig().datadog_url
-    with requests_mock.mock() as mock:
-        # Datadog:
-        mock.register_uri("POST", "/v1/series?api_key=correct", status_code=202)
-        mock.register_uri("POST", "/v1/series?api_key=authfail", status_code=403)
-        mock.register_uri("POST", "/v1/series?api_key=exc", exc=ConnectTimeout)
-        # K8S:
-        mock.register_uri("GET", "/stats/summary", text=k8s_stats_response)
-        mock.register_uri("GET", "/stats/notjson", text='{"node": []')
-        mock.register_uri("GET", "/stats/exc", exc=ConnectTimeout)
-        mock.register_uri(
-            "GET", "/stats/wrongcreds", status_code=401, text="Unauthorized"
-        )
-        # Docker:
-        mock.register_uri("GET", "/containers/json", text='[{"Id": "123a"}]')
-        mock.register_uri("GET", "/not-json/json", text="Go away, no JSON here.")
-        mock.register_uri("GET", "/conn-exc/json", exc=ConnectionError)
-        mock.register_uri(
-            "GET", "/containers/123a/stats?stream=false", text=docker_stats_response
-        )
-        mock.register_uri(
-            "GET", "/containers/456b/stats?stream=false", text="Go away, no JSON here."
-        )
-        yield datadog_url
+    # Datadog:
+    requests_mock.register_uri("POST", "/v1/series?api_key=correct", status_code=202)
+    requests_mock.register_uri("POST", "/v1/series?api_key=authfail", status_code=403)
+    requests_mock.register_uri("POST", "/v1/series?api_key=exc", exc=ConnectTimeout)
+    # K8S:
+    requests_mock.register_uri("GET", "/stats/summary", text=k8s_stats_response)
+    requests_mock.register_uri("GET", "/stats/notjson", text='{"node": []')
+    requests_mock.register_uri("GET", "/stats/exc", exc=ConnectTimeout)
+    requests_mock.register_uri(
+        "GET", "/stats/wrongcreds", status_code=401, text="Unauthorized"
+    )
+    # Docker:
+    requests_mock.register_uri("GET", "/containers/json", text='[{"Id": "123a"}]')
+    requests_mock.register_uri("GET", "/not-json/json", text="Go away, no JSON here.")
+    requests_mock.register_uri("GET", "/conn-exc/json", exc=ConnectionError)
+    requests_mock.register_uri(
+        "GET", "/containers/123a/stats?stream=false", text=docker_stats_response
+    )
+    requests_mock.register_uri(
+        "GET", "/containers/456b/stats?stream=false", text="Go away, no JSON here."
+    )
+    yield datadog_url
