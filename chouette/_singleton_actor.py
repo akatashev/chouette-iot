@@ -8,7 +8,7 @@ from chouette import Scheduler
 
 __all__ = ["SingletonActor", "VitalActor"]
 
-logger = logging.getLogger("chouette")
+logger = logging.getLogger("chouette-iot")
 
 
 class SingletonActor(ThreadingActor):

@@ -21,7 +21,7 @@ from .messages import StatsRequest, StatsResponse
 
 __all__ = ["DockerCollector"]
 
-logger = logging.getLogger("chouette")
+logger = logging.getLogger("chouette-iot")
 
 
 class DockerCollectorConfig(BaseSettings):

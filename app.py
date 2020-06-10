@@ -12,7 +12,7 @@ from chouette import Scheduler, ChouetteConfig, Cancellable
 from chouette._singleton_actor import SingletonActor
 from chouette.metrics import MetricsCollector, MetricsAggregator, MetricsSender
 
-logger = logging.getLogger("chouette")
+logger = logging.getLogger("chouette-iot")
 
 
 class Chouette:
@@ -41,7 +41,7 @@ class Chouette:
             interval, actor_class: Type[SingletonActor], message
     ) -> Cancellable:
         """
-        Uses chouette.Scheduler to periodically send a message to an actor of
+        Uses chouette-iot.Scheduler to periodically send a message to an actor of
         a specified class at some fixed rate.
 
         Args:

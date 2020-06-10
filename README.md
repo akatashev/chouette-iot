@@ -1,6 +1,6 @@
-# Chouette-iot
+# Chouette-IoT
 
-[![Chouette-iot](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com/akatashev/chouette-iot)
+[![Chouette-IoT](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com/akatashev/chouette-iot)
 [![Python 3.6+](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/)
 [![Pypy 3.6](https://img.shields.io/badge/pypy-3.6-blue.svg)](https://www.pypy.org/)
 [![CircleCI](https://circleci.com/gh/akatashev/chouette-iot/tree/dev.svg?style=svg)](https://app.circleci.com/pipelines/github/akatashev/chouette-iot)
@@ -9,8 +9,6 @@
 **Chouette** is a [Pykka](https://www.pykka.org/) based **Datadog** compatible modular metrics collection agent and system monitoring solution for IoT solutions based on such devices as Raspberry Pi or Nvidia Jetson.
 
 It uses Redis as a broker for metrics from other applications and as a storage for ready to dispatch metrics. Periodically it tries to dispatch data to Datadog. If it doesn't happen for some reason, metrics are being preserved in their queue to be dispatched later, when connectivity is restored or Chouette is redeployed with correct configuration.
-
-Chouette design description can be found [here](./chouette/README.md).
 
 ## Metrics collection agent?
 
@@ -25,24 +23,6 @@ Aggregation means that metrics of the same type produced during the same period 
 Chouette calls this process of transforming raw metrics to ready to dispatch metrics **wrapping**. It uses **MetricWrapper** objects to do this. By using custom **wrappers** a user is able to cast raw metrics into any number and kind of actual Datadog metrics.
 
 Every 60 seconds (*by default*) a component named MetricsSender gets ready to dispatch metrics from a queue, compresses them and sends them to Datadog.
-
-### MetricWrappers
-
-While the standard Datadog [metric types](https://docs.datadoghq.com/developers/metrics/types/) are pretty nice, sometimes you probably want to perform some custom data transformation on the device side and send the minimal possible amount of data to Datadog.
-
-That's where custom MetricWrappers can be used.
-
-E.g.: **SimpleWrapper** object knows only two kinds of metrics:
-* Count - that is absolutely the same as in standard Datadog.
-* Gauge - that is actually not `gauge` from Datadog description, but is an **average** value of the metrics emitted during the aggregation interval.
-
-Every `count` metric sends a single Datadog metric of type `count`. 
-
-Every `gauge` metrics sends one Datadog metric of type `gauge` that contains an average value of aggregated metrics and one Datadog metric of type `count` that tells how many metrics were used to calculate that average value.
-
-All other kinds of metrics are considered being a `gauge` metric.
-
-It violates metric types descriptions, but it can be handy in a sense of sending only the data that you need and not a single unnecessary metric.
 
 ## System monitoring solution?
 
@@ -81,77 +61,9 @@ They are:
 * **RELEASE_INTERVAL**: How often Chouette should dispatch compressed metrics to Datadog. Default value is 60.
 * **SEND_SELF_METRICS**: Whether Chouette should also send its owl metrics like an amount of sent bytes and number of sent metrics. By default `True`.
 
-## Microk8s example deployment file
+## Documentation
 
-If we suppose, there is a Nvidia Nano device that is running microk8s that has a Redis service whos hostname of other pods is `redis`, application deployment file can look like this:
-```
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
-    app: chouette
-  name: chouette
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: chouette
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        app: chouette
-    spec:
-      containers:
-      - name: chouette
-        image: localhost:32000/chouette:latest
-        command: ["python3", "app.py"]        
-        env:
-        - name: REDIS_HOST
-          value: redis
-        - name: REDIS_PORT
-          value: '6379'
-        - name: API_KEY
-          value: 1234567890abc
-        - name: COLLECTOR_PLUGINS
-          value: '["k8s", "host", "tegrastats"]'
-        - name: GLOBAL_TAGS
-          value: '["host:nvidia-nano", "environment:Development"]'
-        - name: METRICS_WRAPPER
-          value: "datadog"
-        - name: K8S_KEY_PATH
-          value: /chouette/k8s-key.key
-        - name: K8S_CERT_PATH
-          value: /chouette/k8s-cert.crt
-        - name: K8S_STATS_SERVICE_IP
-          value: 10.1.18.1
-        imagePullPolicy: Always
-        volumeMounts:
-        - mountPath: /chouette/k8s-cert.crt
-          name: k8s-cert
-        - mountPath: /chouette/k8s-key.key
-          name: k8s-key
-        - mountPath: /usr/bin/tegrastats
-          name: tegrastats
-      imagePullSecrets:
-      - name: development-ecr-registry
-      volumes:
-      - hostPath:
-          path: /var/snap/microk8s/current/certs/server.crt
-        name: k8s-cert
-      - hostPath:
-          path: /var/snap/microk8s/current/certs/server.key
-        name: k8s-key
-      - hostPath:
-          path: /usr/bin/tegrastats
-        name: tegrastats
-```
-This deployment file creates a Deployment with a single chouette pod.
-
-`Volumes` part describes volumes necessary for `k8s` and `tegrastats` plugins.  
-Both `k8s-key` and `k8s-cert` are used by `K8sCollector` to collect data from K8s Stats Service.  
-`tegrastats` volume is used by `TegrastatsCollector`.
+Chouette documentation is available [here](https://github.com/akatashev/chouette-iot/tree/dev/docs).
 
 ## License
-Chouette is licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+Chouette-IoT is licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).

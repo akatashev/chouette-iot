@@ -19,7 +19,7 @@ from .messages import StatsRequest, StatsResponse
 
 __all__ = ["TegrastatsCollector"]
 
-logger = logging.getLogger("chouette")
+logger = logging.getLogger("chouette-iot")
 
 
 class TegrastatsConfig(BaseSettings):

@@ -37,11 +37,11 @@ def stored_wrapped_keys(redis_client, metrics_keys):
 
     Before and after every test queue set is being cleaned up.
     """
-    redis_client.delete("chouette:wrapped:metrics.keys")
+    redis_client.delete("chouette-iot:wrapped:metrics.keys")
     for key, ts in metrics_keys:
-        redis_client.zadd("chouette:wrapped:metrics.keys", {key: ts})
+        redis_client.zadd("chouette-iot:wrapped:metrics.keys", {key: ts})
     yield metrics_keys
-    redis_client.delete("chouette:wrapped:metrics.keys")
+    redis_client.delete("chouette-iot:wrapped:metrics.keys")
 
 
 @pytest.fixture
@@ -65,10 +65,10 @@ def expected_metrics(redis_client, sender_proxy, redis_cleanup):
     sender_proxy.redis.get().ask(StoreRecords("metrics", metrics, wrapped=True))
     # Adding a "metric" that is not JSON parseable:
     redis_client.zadd(
-        "chouette:wrapped:metrics.keys", {"wrong-metric-uid": time.time()}
+        "chouette-iot:wrapped:metrics.keys", {"wrong-metric-uid": time.time()}
     )
     redis_client.hset(
-        "chouette:wrapped:metrics.values", b"wrong-metric-uid", b"So wrong!"
+        "chouette-iot:wrapped:metrics.values", b"wrong-metric-uid", b"So wrong!"
     )
     # Generate expected metrics by adding global tags to tags fields.
     global_tags = sender_proxy.tags.get()
@@ -226,7 +226,7 @@ def test_sender_sends_self_metrics(monkeypatch, expected_metrics, send_self_metr
     Scenario 1:
     GIVEN: Option `send_self_metrics` is set to True.
     WHEN: `dispatch_to_datadog` method is called and executed successfully.
-    THEN: 2 `chouette.metrics.dispatched` raw metrics are stored to Redis.
+    THEN: 2 `chouette-iot.metrics.dispatched` raw metrics are stored to Redis.
 
     Scenario 2:
     GIVEN: Option `send_self_metrics` is set to False.

@@ -26,19 +26,19 @@ def redis_actor():
 
 def test_redis_gets_queues_correcty(redis_actor, stored_raw_values):
     """"""
-    message = GetRedisQueues("chouette:*.values")
+    message = GetRedisQueues("chouette-iot:*.values")
     queues_names = redis_actor.ask(message)
-    assert queues_names == [b"chouette:raw:metrics.values"]
+    assert queues_names == [b"chouette-iot:raw:metrics.values"]
 
 
 def test_redis_gets_hash_sizes_correctly(redis_actor, stored_raw_values):
     message = GetHashSizes(
-        [b"chouette:raw:metrics.values", b"chouette:wrapped:metrics.values"]
+        [b"chouette-iot:raw:metrics.values", b"chouette-iot:wrapped:metrics.values"]
     )
     hash_sizes = redis_actor.ask(message)
     assert hash_sizes == [
-        ("chouette:raw:metrics.values", 5),
-        ("chouette:wrapped:metrics.values", 0),
+        ("chouette-iot:raw:metrics.values", 5),
+        ("chouette-iot:wrapped:metrics.values", 0),
     ]
 
 
@@ -212,8 +212,8 @@ def test_redis_cleans_outdated_metrics_correctly(redis_actor, redis_cleanup):
     [
         msgs.CollectKeys("metrics", wrapped=False),
         msgs.CollectValues("metrics", [b"key"], wrapped=True),
-        GetRedisQueues("chouette:*"),
-        GetHashSizes([b"chouette:hash"]),
+        GetRedisQueues("chouette-iot:*"),
+        GetHashSizes([b"chouette-iot:hash"]),
     ],
 )
 def test_redis_returns_nil_on_failed_collections(redis_actor, message):

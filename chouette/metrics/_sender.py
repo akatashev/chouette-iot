@@ -23,7 +23,7 @@ from chouette.storages.messages import (
 
 __all__ = ["MetricsSender"]
 
-logger = logging.getLogger("chouette")
+logger = logging.getLogger("chouette-iot")
 
 
 class MetricsSender(VitalActor):

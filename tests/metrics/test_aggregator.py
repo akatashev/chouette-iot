@@ -13,7 +13,7 @@ from chouette.storages.messages import StoreRecords, CollectKeys, CollectValues
 def aggregator_ref(monkeypatch, redis_client):
     ActorRegistry.stop_all()
     monkeypatch.setenv("API_KEY", "whatever")
-    monkeypatch.setenv("GLOBAL_TAGS", '["chouette:est:chouette"]')
+    monkeypatch.setenv("GLOBAL_TAGS", '["chouette-iot:est:chouette-iot"]')
     monkeypatch.setenv("METRICS_WRAPPER", "simple")
     actor_ref = MetricsAggregator.start()
     yield actor_ref
@@ -43,7 +43,7 @@ def test_aggregator_without_merger_drops_messages(monkeypatch):
     AND: It doesn't try to reach Redis to get metrics keys.
     """
     monkeypatch.setenv("API_KEY", "whatever")
-    monkeypatch.setenv("GLOBAL_TAGS", '["chouette:est:chouette"]')
+    monkeypatch.setenv("GLOBAL_TAGS", '["chouette-iot:est:chouette-iot"]')
     monkeypatch.setenv("METRICS_WRAPPER", "none")
     aggregator_ref = MetricsAggregator.start()
     with patch.object(RedisStorage, "_collect_keys") as collect_keys:

@@ -18,7 +18,7 @@ from chouette.metrics import WrappedMetric
 
 __all__ = ["K8sCollector"]
 
-logger = logging.getLogger("chouette")
+logger = logging.getLogger("chouette-iot")
 
 
 class K8sCollectorConfig(BaseSettings):

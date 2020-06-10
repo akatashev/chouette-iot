@@ -1,4 +1,4 @@
-# Chouette-iot Design
+# Chouette-IoT Design
 
 Chouette is based on having a third-party broker, where raw and processed metrics are being stored prior to be sent to Datadog.
 
@@ -29,7 +29,7 @@ Defining custom wrappers gives you a chance to send only data that you really ne
 5. **Metrics Collector** is an actor that collects data about a node. It's a very simple actor itself, on any message that is not a special **StatsResponse** object, it sends **StatsRequests** messages to all of its plugins. These plugins collect metrics about their field of responsibility and sends them back in a **StatsResponse** message. On that message **Metrics Collector** sends received data to a storage to be stored. Interaction with collector plugins happens with a `tell` Pykka pattern, so it's fully asynchronous.
 
 6. **Collector Plugins** are also actors who are able to receive **StatsRequest** messages and to send **StatsResponse** messages back. Every plugin should be able to get data about some small fields. And it's desirable that it sends *as little data as possible*.  
-Information about plugins can be found [here](./metrics/plugins/README.md).  
+Information about plugins can be found [here](./COLLECTOR_PLUGINS.md).  
 Plugins examples are: **K8sCollector** that collects metrics from K8s Stats Service and **DockerCollector** that collects containers metrics from a docker socket file.
 
 7. **Scheduler** is not an actor. Since actors need to receive a message to perform their job and since job of all these actors must be executed periodically, Chouette needs an object that is able to send these metrics at some fixed rate. Scheduler's idea is based on Akka Scheduler approach and `threading.Timer` and is able to do more than just sending messages to actors.

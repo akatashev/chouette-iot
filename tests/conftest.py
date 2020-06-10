@@ -124,11 +124,11 @@ def stored_raw_keys(redis_client, metrics_keys):
 
     Before and after every test queue set is being cleaned up.
     """
-    redis_client.delete("chouette:raw:metrics.keys")
+    redis_client.delete("chouette-iot:raw:metrics.keys")
     for key, ts in metrics_keys:
-        redis_client.zadd("chouette:raw:metrics.keys", {key: ts})
+        redis_client.zadd("chouette-iot:raw:metrics.keys", {key: ts})
     yield metrics_keys
-    redis_client.delete("chouette:raw:metrics.keys")
+    redis_client.delete("chouette-iot:raw:metrics.keys")
 
 
 @pytest.fixture
@@ -138,11 +138,11 @@ def stored_raw_values(redis_client, raw_metrics_values):
 
     Before and after every test queue hash is being cleaned up.
     """
-    redis_client.delete("chouette:raw:metrics.values")
+    redis_client.delete("chouette-iot:raw:metrics.values")
     for key, message in raw_metrics_values:
-        redis_client.hset("chouette:raw:metrics.values", key, message)
+        redis_client.hset("chouette-iot:raw:metrics.values", key, message)
     yield raw_metrics_values
-    redis_client.delete("chouette:raw:metrics.values")
+    redis_client.delete("chouette-iot:raw:metrics.values")
 
 
 @pytest.fixture

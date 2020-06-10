@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional, Set
 
 __all__ = ["Scheduler", "Cancellable"]
 
-logger = logging.getLogger("chouette")
+logger = logging.getLogger("chouette-iot")
 
 
 class Cancellable:

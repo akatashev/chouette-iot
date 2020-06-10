@@ -13,7 +13,7 @@ from chouette.metrics.plugins.messages import StatsRequest, StatsResponse
 from chouette.storages import RedisStorage
 from chouette.storages.messages import StoreRecords
 
-logger = logging.getLogger("chouette")
+logger = logging.getLogger("chouette-iot")
 
 __all__ = ["MetricsCollector"]
 

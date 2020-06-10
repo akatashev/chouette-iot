@@ -15,7 +15,7 @@ def collector_ref(monkeypatch):
     """
     ActorRegistry.stop_all()
     monkeypatch.setenv("API_KEY", "whatever")
-    monkeypatch.setenv("GLOBAL_TAGS", '["chouette:est:chouette"]')
+    monkeypatch.setenv("GLOBAL_TAGS", '["chouette-iot:est:chouette-iot"]')
     monkeypatch.setenv("COLLECTOR_PLUGINS", '["ice-cream", "berries"]')
     actor_ref = MetricsCollector.start()
     yield actor_ref
@@ -31,7 +31,7 @@ def test_collector_reads_plugin_list(monkeypatch, post_test_actors_stop):
     THEN: It loads them and stores into its `plugins` property.
     """
     monkeypatch.setenv("API_KEY", "whatever")
-    monkeypatch.setenv("GLOBAL_TAGS", '["chouette:est:chouette"]')
+    monkeypatch.setenv("GLOBAL_TAGS", '["chouette-iot:est:chouette-iot"]')
     monkeypatch.setenv("COLLECTOR_PLUGINS", '["ice-cream", "berries"]')
     collector_ref = MetricsCollector.start()
     loaded_plugins = collector_ref.proxy().plugins.get()

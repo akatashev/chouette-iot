@@ -19,7 +19,7 @@ from chouette.storages.messages import (
 
 __all__ = ["MetricsAggregator"]
 
-logger = logging.getLogger("chouette")
+logger = logging.getLogger("chouette-iot")
 
 
 class MetricsAggregator(VitalActor):

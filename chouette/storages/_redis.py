@@ -23,7 +23,7 @@ from .messages import (
 
 __all__ = ["RedisStorage"]
 
-logger = logging.getLogger("chouette")
+logger = logging.getLogger("chouette-iot")
 
 
 class RedisConfig(BaseSettings):

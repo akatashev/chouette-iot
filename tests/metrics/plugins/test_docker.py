@@ -129,12 +129,12 @@ def test_docker_plugin_gets_container_stats(mocked_http):
     metric1, metric2 = result_list
     # Memory usage check:
     assert metric1.metric == "Chouette.docker.memory.usage"
-    assert metric1.tags == ["container:chouette-iot_redis_1"]
+    assert metric1.tags == ["container:chouette-iot-iot_redis_1"]
     assert metric1.value == 11001856
     assert metric1.type == "gauge"
     # CPU usage check:
     assert metric2.metric == "Chouette.docker.cpu.usage"
-    assert metric2.tags == ["container:chouette-iot_redis_1"]
+    assert metric2.tags == ["container:chouette-iot-iot_redis_1"]
     assert metric2.value == 127550000000
     assert metric2.type == "gauge"
 
