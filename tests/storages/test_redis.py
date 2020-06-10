@@ -16,7 +16,6 @@ from chouette.storages._redis_messages import GetRedisQueues, GetHashSizes
 def redis_actor():
     """
     Redis actor fixture.
-
     Since RedisStorage actor is stateless, scope of the fixture is module.
     """
     actor_ref = RedisStorage.get_instance()
@@ -26,26 +25,25 @@ def redis_actor():
 
 def test_redis_gets_queues_correcty(redis_actor, stored_raw_values):
     """"""
-    message = GetRedisQueues("chouette-iot:*.values")
+    message = GetRedisQueues("chouette:*.values")
     queues_names = redis_actor.ask(message)
-    assert queues_names == [b"chouette-iot:raw:metrics.values"]
+    assert queues_names == [b"chouette:raw:metrics.values"]
 
 
 def test_redis_gets_hash_sizes_correctly(redis_actor, stored_raw_values):
     message = GetHashSizes(
-        [b"chouette-iot:raw:metrics.values", b"chouette-iot:wrapped:metrics.values"]
+        [b"chouette:raw:metrics.values", b"chouette:wrapped:metrics.values"]
     )
     hash_sizes = redis_actor.ask(message)
     assert hash_sizes == [
-        ("chouette-iot:raw:metrics.values", 5),
-        ("chouette-iot:wrapped:metrics.values", 0),
+        ("chouette:raw:metrics.values", 5),
+        ("chouette:wrapped:metrics.values", 0),
     ]
 
 
 def test_redis_gets_keys_correctly(redis_actor, stored_raw_keys):
     """
     Redis returns a list of tuples (record_uid, timestamp) on CollectKeys.
-
     GIVEN: There are some keys in a corresponding set in Redis.
     WHEN: CollectKeys message is sent to RedisStorage.
     THEN: It returns a list of tuples with these keys.
@@ -58,7 +56,6 @@ def test_redis_gets_keys_correctly(redis_actor, stored_raw_keys):
 def test_redis_gets_values_correctly(redis_actor, metrics_keys, stored_raw_values):
     """
     Redis returns a list of bytes-encoded record strings on CollectValues.
-
     GIVEN: There are raw records stored in a queue.
     AND: We have their keys.
     WHEN: CollectValues message is sent to RedisStorage.
@@ -77,7 +74,6 @@ def test_redis_stores_records_correctly(
 ):
     """
     Redis stores records to a specified queue correctly.
-
     GIVEN: We have a correct record we need to store.
     WHEN: We send a StoreRecords to RedisStorage.
     THEN: It returns True.
@@ -109,7 +105,6 @@ def test_redis_stores_records_correctly(
 def test_redis_drops_wrong_records_on_storing(redis_actor, redis_cleanup):
     """
     Redis ignores records that it can't cast to dicts during storaging.
-
     GIVEN: I have a set of correct and incorrect records for storing.
     WHEN: We send a StoreRecords message with these records.
     THEN: It returns true.
@@ -149,7 +144,6 @@ def test_redis_deletes_records_correctly(
 ):
     """
     Redis removes records fom a specified queue correctly.
-
     GIVEN: There are records stored to the queue.
     WHEN: We send a DeleteRecords message to RedisStorage specifying some keys.
     THEN: It returns True.
@@ -172,11 +166,9 @@ def test_redis_deletes_records_correctly(
 def test_redis_cleans_outdated_metrics_correctly(redis_actor, redis_cleanup):
     """
     Redis cleans up outdated wrapped records correctly.
-
     Too old metrics are rejected by Datadog, so they should be cleaned up
     before dispatching. CleanupOutdatedRecords cleans all the records older
     than specified 'ttl' value.
-
     GIVEN: There are a bunch metrics in a queue and some of them are outdated.
     WHEN: CleanupOutdatedRecords message is sent to RedisStorage.
     THEN: It returns True.
@@ -212,14 +204,13 @@ def test_redis_cleans_outdated_metrics_correctly(redis_actor, redis_cleanup):
     [
         msgs.CollectKeys("metrics", wrapped=False),
         msgs.CollectValues("metrics", [b"key"], wrapped=True),
-        GetRedisQueues("chouette-iot:*"),
-        GetHashSizes([b"chouette-iot:hash"]),
+        GetRedisQueues("chouette:*"),
+        GetHashSizes([b"chouette:hash"]),
     ],
 )
 def test_redis_returns_nil_on_failed_collections(redis_actor, message):
     """
     RedisStorage returns an empty list on failed Collection messages:
-
     GIVEN: There is a message of a Collection type.
     BUT: Redis instance is not ready to handle it.
     WHEN: Collection is requested from RedisStorage.
@@ -234,7 +225,6 @@ def test_redis_returns_empty_list_on_empty_collect_value(redis_actor, redis_clea
     """
     RedisStorage returns an empty list on a CollectValue request with empty
     keys list.
-
     GIVEN: There is a CollectValues message with an empty list of keys.
     WHEN: Collection is requested from RedisStorage.
     THEN: RedisStorage returns an empty list.
@@ -259,7 +249,6 @@ def test_redis_returns_empty_list_on_empty_collect_value(redis_actor, redis_clea
 def test_redis_returns_false_on_failed_actions(redis_actor, message):
     """
     RedisStorage returns False when actions were not executed successfully.
-
     GIVEN: There is an action message.
     BUT: Redis instance isn't ready to process it, or it's malformed.
     WHEN: Execution is requested from RedisStorage.
@@ -281,10 +270,8 @@ def test_redis_returns_false_on_failed_actions(redis_actor, message):
 def test_redis_returns_true_on_empty_actions(redis_actor, message):
     """
     RedisStorage returns True on empty action messages.
-
     There are two action messages with lists of arguments:
     DeleteRecords and StoreRecords.
-
     GIVEN: There is an empty action message.
     WHEN: Execution is requested.
     THEN: True is returned regardless of a Redis instance state.
@@ -297,7 +284,6 @@ def test_redis_returns_true_on_empty_actions(redis_actor, message):
 def test_redis_returns_none_on_unexpected_message(redis_actor):
     """
     RedisStorage returns None on unexpected message.
-
     GIVEN: There is an unexpected message.
     WHEN: It is sent to RedisStorage.
     THEN: It returns None.
