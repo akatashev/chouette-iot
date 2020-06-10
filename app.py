@@ -4,7 +4,7 @@ Chouette __main__ entry point.
 import logging
 import sys
 import time
-from typing import List, Type
+from typing import Any, List, Type
 
 from pythonjsonlogger import jsonlogger  # type: ignore
 
@@ -38,7 +38,7 @@ class Chouette:
 
     @staticmethod
     def schedule_call(
-            interval, actor_class: Type[SingletonActor], message
+            interval: float, actor_class: Type[SingletonActor], message: Any
     ) -> Cancellable:
         """
         Uses chouette-iot.Scheduler to periodically send a message to an actor of
