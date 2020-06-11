@@ -1,10 +1,10 @@
 import pytest
 from pykka import ActorRegistry
 
-from chouette.metrics import WrappedMetric
-from chouette.metrics.plugins import DramatiqCollector
-from chouette.metrics.plugins._dramatiq_collector import DramatiqCollectorPlugin
-from chouette.metrics.plugins.messages import StatsRequest, StatsResponse
+from chouette_iot.metrics import WrappedMetric
+from chouette_iot.metrics.plugins import DramatiqCollector
+from chouette_iot.metrics.plugins._dramatiq_collector import DramatiqCollectorPlugin
+from chouette_iot.metrics.plugins.messages import StatsRequest, StatsResponse
 
 
 @pytest.fixture

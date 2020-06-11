@@ -7,9 +7,9 @@ from pykka import ActorRegistry
 from redis import RedisError
 from redis.client import Pipeline
 
-from chouette.metrics import MetricsSender
-from chouette.metrics import WrappedMetric
-from chouette.storages.messages import StoreRecords, CollectKeys
+from chouette_iot.metrics import MetricsSender
+from chouette_iot.metrics import WrappedMetric
+from chouette_iot.storages.messages import StoreRecords, CollectKeys
 
 
 @pytest.fixture
@@ -37,11 +37,11 @@ def stored_wrapped_keys(redis_client, metrics_keys):
 
     Before and after every test queue set is being cleaned up.
     """
-    redis_client.delete("chouette:wrapped:metrics.keys")
+    redis_client.delete("chouette:metrics:wrapped.keys")
     for key, ts in metrics_keys:
-        redis_client.zadd("chouette:wrapped:metrics.keys", {key: ts})
+        redis_client.zadd("chouette:metrics:wrapped.keys", {key: ts})
     yield metrics_keys
-    redis_client.delete("chouette:wrapped:metrics.keys")
+    redis_client.delete("chouette:metrics:wrapped.keys")
 
 
 @pytest.fixture
@@ -65,10 +65,10 @@ def expected_metrics(redis_client, sender_proxy, redis_cleanup):
     sender_proxy.redis.get().ask(StoreRecords("metrics", metrics, wrapped=True))
     # Adding a "metric" that is not JSON parseable:
     redis_client.zadd(
-        "chouette:wrapped:metrics.keys", {"wrong-metric-uid": time.time()}
+        "chouette:metrics:wrapped.keys", {"wrong-metric-uid": time.time()}
     )
     redis_client.hset(
-        "chouette:wrapped:metrics.values", b"wrong-metric-uid", b"So wrong!"
+        "chouette:metrics:wrapped.values", b"wrong-metric-uid", b"So wrong!"
     )
     # Generate expected metrics by adding global tags to tags fields.
     global_tags = sender_proxy.tags.get()
@@ -225,8 +225,12 @@ def test_sender_sends_self_metrics(monkeypatch, expected_metrics, send_self_metr
 
     Scenario 1:
     GIVEN: Option `send_self_metrics` is set to True.
+    AND: There are more metrics in the queue than Chouette sends (in this
+         scenario this "extra" metrics is an invalid metrics but normally
+         it happens when there is too many metrics for one batch).
     WHEN: `dispatch_to_datadog` method is called and executed successfully.
     THEN: 2 `chouette.metrics.dispatched` raw metrics are stored to Redis.
+    AND: `choette.queue.metrics` metric is stored to Redis.
 
     Scenario 2:
     GIVEN: Option `send_self_metrics` is set to False.
@@ -239,4 +243,4 @@ def test_sender_sends_self_metrics(monkeypatch, expected_metrics, send_self_metr
     sender_proxy.dispatch_to_datadog(expected_metrics).get()
     redis = sender_proxy.redis.get()
     keys = redis.ask(CollectKeys("metrics", wrapped=False))
-    assert (len(keys) == 2) is send_self_metrics
+    assert (len(keys) == 3) is send_self_metrics

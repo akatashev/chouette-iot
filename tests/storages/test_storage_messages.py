@@ -1,4 +1,4 @@
-from chouette.storages.messages import (
+from chouette_iot.storages.messages import (
     CleanupOutdatedRecords,
     CollectValues,
     CollectKeys,

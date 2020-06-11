@@ -26,4 +26,4 @@ services:
       - redis
     environment:
       - PYTHONPATH=/chouette
-    command: ["pytest", "-s", "-vvv", "--cov", "chouette", "--cov-report", "term-missing"]
+    command: ["pytest", "-s", "-vvv", "--cov", "chouette_iot", "--cov-report", "term-missing"]

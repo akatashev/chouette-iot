@@ -1,7 +1,7 @@
 import pytest
 
-from chouette.metrics import MergedMetric
-from chouette.metrics._aggregator import MetricsMerger
+from chouette_iot.metrics import MergedMetric
+from chouette_iot.metrics._aggregator import MetricsMerger
 
 
 @pytest.fixture

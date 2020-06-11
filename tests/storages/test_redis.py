@@ -6,10 +6,10 @@ import pytest
 from redis import Redis, RedisError
 from redis.client import Pipeline
 
-import chouette.storages.messages as msgs
-from chouette.metrics import WrappedMetric
-from chouette.storages import RedisStorage
-from chouette.storages._redis_messages import GetRedisQueues, GetHashSizes
+import chouette_iot.storages.messages as msgs
+from chouette_iot.metrics import WrappedMetric
+from chouette_iot.storages import RedisStorage
+from chouette_iot.storages._redis_messages import GetRedisQueues, GetHashSizes
 
 
 @pytest.fixture
@@ -27,17 +27,17 @@ def test_redis_gets_queues_correcty(redis_actor, stored_raw_values):
     """"""
     message = GetRedisQueues("chouette:*.values")
     queues_names = redis_actor.ask(message)
-    assert queues_names == [b"chouette:raw:metrics.values"]
+    assert queues_names == [b"chouette:metrics:raw.values"]
 
 
 def test_redis_gets_hash_sizes_correctly(redis_actor, stored_raw_values):
     message = GetHashSizes(
-        [b"chouette:raw:metrics.values", b"chouette:wrapped:metrics.values"]
+        [b"chouette:metrics:raw.values", b"chouette:metrics:wrapped.values"]
     )
     hash_sizes = redis_actor.ask(message)
     assert hash_sizes == [
-        ("chouette:raw:metrics.values", 5),
-        ("chouette:wrapped:metrics.values", 0),
+        ("chouette:metrics:raw.values", 5),
+        ("chouette:metrics:wrapped.values", 0),
     ]
 
 

@@ -3,7 +3,7 @@ from threading import Timer
 
 import pytest
 
-from chouette import Cancellable, Scheduler
+from chouette_iot import Cancellable, Scheduler
 
 PERIODIC_JOB_METHODS = (
     Scheduler.schedule_at_fixed_rate,

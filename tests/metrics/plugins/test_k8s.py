@@ -4,10 +4,10 @@ from unittest.mock import patch
 import pytest
 from pykka import ActorRegistry
 
-from chouette.metrics import WrappedMetric
-from chouette.metrics.plugins import K8sCollector
-from chouette.metrics.plugins._k8s_collector import K8sCollectorPlugin
-from chouette.metrics.plugins.messages import StatsRequest, StatsResponse
+from chouette_iot.metrics import WrappedMetric
+from chouette_iot.metrics.plugins import K8sCollector
+from chouette_iot.metrics.plugins._k8s_collector import K8sCollectorPlugin
+from chouette_iot.metrics.plugins.messages import StatsRequest, StatsResponse
 
 
 @pytest.fixture

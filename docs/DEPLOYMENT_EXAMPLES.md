@@ -35,7 +35,7 @@ spec:
       containers:
       - name: chouette-iot
         image: chouette-iot:0.0.1
-        command: ["python3", "app.py"]        
+        command: ["python3", "-m", "chouette_iot"]        
         env:
         - name: REDIS_HOST
           value: redis
@@ -110,7 +110,7 @@ services:
       - GLOBAL_TAGS=["host:nvidia-nano", "environment:Development"]  # Let's say, we use the same Nano.
       - COLLECTOR_PLUGINS=["host", "tegrastats", "docker"]  # 'k8s' plugin is replaced by 'docker'
       - METRICS_WRAPPER=datadog
-    command: python3 app.py
+    command: python3 -m chouette_iot
 
   (other containers with their applications)
 ```

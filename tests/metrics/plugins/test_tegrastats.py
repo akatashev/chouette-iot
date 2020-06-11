@@ -3,10 +3,10 @@ import os
 import pytest
 from pykka import ActorRegistry
 
-from chouette.metrics import WrappedMetric
-from chouette.metrics.plugins import TegrastatsCollector
-from chouette.metrics.plugins._tegrastats_collector import TegrastatsPlugin
-from chouette.metrics.plugins.messages import StatsRequest, StatsResponse
+from chouette_iot.metrics import WrappedMetric
+from chouette_iot.metrics.plugins import TegrastatsCollector
+from chouette_iot.metrics.plugins._tegrastats_collector import TegrastatsPlugin
+from chouette_iot.metrics.plugins.messages import StatsRequest, StatsResponse
 
 TEGRASTATS_RESPONSE = (
     "RAM 6266/7860MB (lfb 1x1MB) CPU [20%@345,off,off,15%@345,15%@345,19%@345]"

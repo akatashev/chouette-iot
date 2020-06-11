@@ -1,5 +1,5 @@
-from chouette.metrics import MergedMetric, WrappedMetric
-from chouette.metrics.wrappers import DatadogWrapper
+from chouette_iot.metrics import MergedMetric, WrappedMetric
+from chouette_iot.metrics.wrappers import DatadogWrapper
 
 
 def test_datadog_unsupported_metric_type():

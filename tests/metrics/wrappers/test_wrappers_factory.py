@@ -1,6 +1,6 @@
 import pytest
 
-from chouette.metrics.wrappers import WrappersFactory, SimpleWrapper
+from chouette_iot.metrics.wrappers import WrappersFactory, SimpleWrapper
 
 
 @pytest.mark.parametrize(

@@ -4,9 +4,9 @@ from unittest.mock import patch
 import pytest
 from pykka import ActorRegistry
 
-from chouette.metrics import MetricsAggregator, RawMetric
-from chouette.storages import RedisStorage
-from chouette.storages.messages import StoreRecords, CollectKeys, CollectValues
+from chouette_iot.metrics import MetricsAggregator, RawMetric
+from chouette_iot.storages import RedisStorage
+from chouette_iot.storages.messages import StoreRecords, CollectKeys, CollectValues
 
 
 @pytest.fixture

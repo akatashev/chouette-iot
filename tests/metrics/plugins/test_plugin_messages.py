@@ -1,4 +1,4 @@
-from chouette.metrics.plugins.messages import StatsResponse, StatsRequest
+from chouette_iot.metrics.plugins.messages import StatsResponse, StatsRequest
 
 
 def test_stats_response_str_and_repr():

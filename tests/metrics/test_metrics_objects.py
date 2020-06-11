@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from chouette.metrics import MergedMetric, RawMetric, WrappedMetric
+from chouette_iot.metrics import MergedMetric, RawMetric, WrappedMetric
 
 
 def test_merged_metric_successfull_merge():

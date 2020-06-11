@@ -12,9 +12,9 @@ from unittest.mock import patch
 import pytest
 import psutil
 
-from chouette.metrics import WrappedMetric
-from chouette.metrics.plugins import HostStatsCollector
-from chouette.metrics.plugins.messages import StatsRequest, StatsResponse
+from chouette_iot.metrics import WrappedMetric
+from chouette_iot.metrics.plugins import HostStatsCollector
+from chouette_iot.metrics.plugins.messages import StatsRequest, StatsResponse
 
 
 @pytest.fixture

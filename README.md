@@ -10,6 +10,8 @@
 
 It uses Redis as a broker for metrics from other applications and as a storage for ready to dispatch metrics. Periodically it tries to dispatch data to Datadog. If it doesn't happen for some reason, metrics are being preserved in their queue to be dispatched later, when connectivity is restored or Chouette is redeployed with correct configuration.
 
+Applications should use [Chouette-IoT-client](https://github.com/akatashev/chouette-iot-client) library to successfully send metrics via Chouette-Iot.
+
 ## Metrics collection agent?
 
 Chouette is expected to run along with Redis and monitored applications in a system handled by **Kubernetes** (e.g. [microk8s](https://microk8s.io/)) or **Docker-compose**. It can be run in other environments, but it was designed to be used as a container in some kind of an orchestrator.
@@ -49,8 +51,8 @@ Chouette should be configured via environment variables. Most of orchestrators m
 
 They are:
 * **API_KEY**: Datadog API key used by Datadog to authenticate you. 
-* **GLOBAL_TAGS**: List of tags that you want to send along with every metric. E.g.: `'["host:my-iot-device", "location:London"]'`.
-* **COLLECT_PLUGINS**: List of collector plugins that Chouette should use to collect metrics. Empty by default. If you don't specify anything, it won't collect any metrics. E.g.: `'["host", "k8s"]'`.
+* **GLOBAL_TAGS**: List of tags that you want to send along with every metric. E.g.: `["host:my-iot-device", "location:London"]`.
+* **COLLECT_PLUGINS**: List of collector plugins that Chouette should use to collect metrics. Empty by default. If you don't specify anything, it won't collect any metrics. E.g.: `["host", "k8s"]`.
 * **AGGREGATE_INTERVAL**: How often raw metrics should be aggregated. Default value is 10 for 10 seconds just like in Datadog Agent's "flush interval".
 * **CAPTURE_INTERVAL**: How often Chouette should collect stats from its plugins. Default value is 30.
 * **DATADOG_URL**: By default `https://api.datadoghq.com/api`, but if you have your own small Datadog, you can change it!

@@ -6,8 +6,8 @@ from pykka import ActorRegistry
 from redis import Redis
 from requests.exceptions import ConnectTimeout
 
-from chouette import ChouetteConfig
-from chouette._singleton_actor import SingletonActor
+from chouette_iot import ChouetteConfig
+from chouette_iot._singleton_actor import SingletonActor
 
 
 @pytest.fixture(scope="session")
@@ -124,11 +124,11 @@ def stored_raw_keys(redis_client, metrics_keys):
 
     Before and after every test queue set is being cleaned up.
     """
-    redis_client.delete("chouette:raw:metrics.keys")
+    redis_client.delete("chouette:metrics:raw.keys")
     for key, ts in metrics_keys:
-        redis_client.zadd("chouette:raw:metrics.keys", {key: ts})
+        redis_client.zadd("chouette:metrics:raw.keys", {key: ts})
     yield metrics_keys
-    redis_client.delete("chouette:raw:metrics.keys")
+    redis_client.delete("chouette:metrics:raw.keys")
 
 
 @pytest.fixture
@@ -138,11 +138,11 @@ def stored_raw_values(redis_client, raw_metrics_values):
 
     Before and after every test queue hash is being cleaned up.
     """
-    redis_client.delete("chouette:raw:metrics.values")
+    redis_client.delete("chouette:metrics:raw.values")
     for key, message in raw_metrics_values:
-        redis_client.hset("chouette:raw:metrics.values", key, message)
+        redis_client.hset("chouette:metrics:raw.values", key, message)
     yield raw_metrics_values
-    redis_client.delete("chouette:raw:metrics.values")
+    redis_client.delete("chouette:metrics:raw.values")
 
 
 @pytest.fixture

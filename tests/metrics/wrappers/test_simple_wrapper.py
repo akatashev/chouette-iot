@@ -1,7 +1,7 @@
 import pytest
 
-from chouette.metrics import MergedMetric, WrappedMetric
-from chouette.metrics.wrappers import SimpleWrapper
+from chouette_iot.metrics import MergedMetric, WrappedMetric
+from chouette_iot.metrics.wrappers import SimpleWrapper
 
 
 def test_wrap_count():

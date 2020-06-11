@@ -1,7 +1,7 @@
 from pykka import ActorRef
 
-from chouette.metrics.plugins import HostStatsCollector
-from chouette.metrics.plugins import PluginsFactory
+from chouette_iot.metrics.plugins import HostStatsCollector
+from chouette_iot.metrics.plugins import PluginsFactory
 
 
 def test_plugins_factory_returns_actor_ref(post_test_actors_stop):
