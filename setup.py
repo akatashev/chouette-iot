@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="chouette-iot",
-    version="0.0.1",
+    version="0.0.1b",
     author="Artem Katashev",
     author_email="aharr@rowanleaf.net",
     description="Monitoring and metrics collecting Datadog integration for IoT devices",
@@ -18,6 +18,7 @@ setuptools.setup(
         "redis",
         "pykka",
         "requests",
+        "requests-unixsocket",
         "python-json-logger",
         "psutil",
         "pydantic",
