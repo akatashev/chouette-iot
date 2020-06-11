@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="chouette-iot",
-    version="0.0.1b",
+    version="0.0.2",
     author="Artem Katashev",
     author_email="aharr@rowanleaf.net",
     description="Monitoring and metrics collecting Datadog integration for IoT devices",
@@ -22,6 +22,7 @@ setuptools.setup(
         "python-json-logger",
         "psutil",
         "pydantic",
+        "chouette-iot-client"
     ],
     classifiers=[
         "Intended Audience :: Developers",

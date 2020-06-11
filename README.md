@@ -1,6 +1,6 @@
 # Chouette-IoT
 
-[![Chouette-IoT](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com/akatashev/chouette-iot)
+[![Chouette-IoT](https://img.shields.io/badge/version-0.0.2-blue.svg)](https://github.com/akatashev/chouette-iot)
 [![Python 3.6+](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/)
 [![Pypy 3.6](https://img.shields.io/badge/pypy-3.6-blue.svg)](https://www.pypy.org/)
 [![CircleCI](https://circleci.com/gh/akatashev/chouette-iot/tree/dev.svg?style=svg)](https://app.circleci.com/pipelines/github/akatashev/chouette-iot)

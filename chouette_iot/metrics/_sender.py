@@ -7,20 +7,19 @@ import zlib
 from typing import Any, List, Optional
 
 import requests
+from chouette_iot_client import ChouetteClient  # type: ignore
 from requests.exceptions import RequestException
 
 from chouette_iot import ChouetteConfig
 from chouette_iot._singleton_actor import VitalActor
-from chouette_iot.metrics import RawMetric
 from chouette_iot.storages import RedisStorage
+from chouette_iot.storages._redis_messages import GetHashSizes
 from chouette_iot.storages.messages import (
     CleanupOutdatedRecords,
     CollectKeys,
     CollectValues,
     DeleteRecords,
-    StoreRecords,
 )
-from chouette_iot.storages._redis_messages import GetHashSizes
 
 __all__ = ["MetricsSender"]
 
@@ -74,7 +73,7 @@ class MetricsSender(VitalActor):
         4. Tries to dispatch them as a compressed "series" message.
         5. If they were dispatched successfully - deletes data from Redis.
 
-        To preserve the exact order of actions, MetricsSender intentially
+        To preserve the exact order of actions, MetricsSender intentionally
         communicates to RedisStorage in a blocking manner, via `ask` requests.
 
         Args:
@@ -159,13 +158,21 @@ class MetricsSender(VitalActor):
         2. Casts it to a single "series" request.
         3. Compresses it.
         4. Tries to send it to Datadog.
-        5. If it's expected to send self metrics, it sends a number
-           of dispatched metrics and the size in bytes of a message.
+
+        If Chouette is expected to send self metrics, as a side
+        effect, this function sends 3 metrics:
+        1. How many messages are queued to be dispatched this
+        minute.
+        2. How many metrics were send (if they were sent).
+        3. How many bytes were sent (if they were sent).
 
         Args:
             metrics: List of prepared to dispatch metrics.
         Returns: Whether these metrics were accepted by Datadog.
         """
+        # Send a 'chouette.queued.metrics' metric.
+        if self.send_self_metrics:
+            self.store_queue_size()
         series = json.dumps({"series": metrics})
         compressed_message: bytes = zlib.compress(series.encode())
         metrics_num = len(metrics)
@@ -180,7 +187,8 @@ class MetricsSender(VitalActor):
         if not dispatched:
             return False
         if self.send_self_metrics:
-            self._send_self_metrics(metrics_num, message_size)
+            ChouetteClient.count("chouette.dispatched.metrics.number", metrics_num)
+            ChouetteClient.count("chouette.dispatched.metrics.bytes", message_size)
         return True
 
     def _post_to_datadog(self, message: bytes) -> bool:
@@ -222,42 +230,17 @@ class MetricsSender(VitalActor):
             return False
         return True
 
-    def _send_self_metrics(self, metrics_num: int, message_size: int) -> None:
+    def store_queue_size(self) -> None:
         """
-        Stores data about how many metrics were sent to Datadog, their size
-        in bytes and amount of messages to send in the wrapped metrics queue
-        if there are any metrics not sent during this Chouette run.
+        Calculates how many metrics are queued to be dispatched on this
+        Sender run and stores this data as a raw metric.
 
-        Args:
-            metrics_num: Number of dispatched metrics.
-            message_size: Size of a sent message in bytes.
+        This is a 'gauge' type metric, because we care about the latest
+        value and not about the possible sum of values.
+
         Returns: None.
         """
-        self_metrics = [
-            RawMetric(
-                metric="chouette.dispatched.metrics.number",
-                type="count",
-                value=metrics_num,
-            ),
-            RawMetric(
-                metric="chouette.dispatched.metrics.bytes",
-                type="count",
-                value=message_size,
-            ),
-        ]
-        # Since Redis is the only broker, this is valid for now.
-        # Not sure whether this data is really useful, will review it later.
-        wrapped_queue = self.redis.ask(
-            GetHashSizes(["chouette:metrics:wrapped.values"])
-        )
-        if wrapped_queue:
-            ready_to_dispatch = wrapped_queue.pop()[1] - metrics_num
-            if ready_to_dispatch > 0:
-                self_metrics.append(
-                    RawMetric(
-                        metric="chouette.queued.metrics",
-                        type="gauge",
-                        value=ready_to_dispatch,
-                    )
-                )
-        self.redis.tell(StoreRecords("metrics", self_metrics, wrapped=False))
+        queues_sizes = self.redis.ask(GetHashSizes(["chouette:metrics:wrapped.values"]))
+        if queues_sizes:
+            _, metrics_queue_size = queues_sizes.pop()
+            ChouetteClient.gauge("chouette.queued.metrics", metrics_queue_size)

@@ -5,3 +5,4 @@ redis
 requests
 requests-unixsocket
 psutil
+chouette-iot-client

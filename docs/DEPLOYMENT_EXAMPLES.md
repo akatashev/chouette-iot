@@ -34,7 +34,7 @@ spec:
     spec:
       containers:
       - name: chouette-iot
-        image: akatashev/chouette-iot:0.0.1
+        image: akatashev/chouette-iot:0.0.2
         command: ["python3", "-m", "chouette_iot"]        
         env:
         - name: REDIS_HOST
@@ -99,7 +99,7 @@ services:
     image: redis:5.0.5
 
   chouette:
-    image: akatashev/chouette-iot:0.0.1
+    image: akatashev/chouette-iot:0.0.2
     links:
       - redis
     volumes:

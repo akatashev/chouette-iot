@@ -242,5 +242,7 @@ def test_sender_sends_self_metrics(monkeypatch, expected_metrics, send_self_metr
     sender_proxy = MetricsSender.get_instance().proxy()
     sender_proxy.dispatch_to_datadog(expected_metrics).get()
     redis = sender_proxy.redis.get()
+    # Sleep due to async ChouetteClient nature:
+    time.sleep(0.1)
     keys = redis.ask(CollectKeys("metrics", wrapped=False))
     assert (len(keys) == 3) is send_self_metrics
