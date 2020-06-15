@@ -56,6 +56,7 @@ class MetricsSender(VitalActor):
         config = ChouetteConfig()
         self.api_key = config.api_key
         self.bulk_size = config.metrics_bulk_size
+        self.host = config.host
         self.datadog_url = config.datadog_url
         self.metric_ttl = config.metric_ttl
         self.redis = RedisStorage.get_instance()
@@ -110,6 +111,8 @@ class MetricsSender(VitalActor):
         Takes a bytes objects that is expected to represent a JSON object,
         casts it to dict and adds global tags to it list of tags.
 
+        Also it adds a "host" value if this value is specified.
+
         Args:
             b_metric: Bytes object representing a metric as a JSON object.
         Returns: Dict representing a metric with updated tags..
@@ -119,6 +122,8 @@ class MetricsSender(VitalActor):
         except (TypeError, json.JSONDecodeError):
             return None
         d_metric["tags"] = d_metric.get("tags", []) + self.tags
+        if self.host:
+            d_metric["host"] = self.host
         return d_metric
 
     def collect_keys(self) -> List[bytes]:

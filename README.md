@@ -51,11 +51,12 @@ Chouette should be configured via environment variables. Most of orchestrators m
 
 They are:
 * **API_KEY**: Datadog API key used by Datadog to authenticate you. 
-* **GLOBAL_TAGS**: List of tags that you want to send along with every metric. E.g.: `["host:my-iot-device", "location:London"]`.
+* **GLOBAL_TAGS**: List of tags that you want to send along with every metric. E.g.: `["device:RaspberryPi", "location:London"]`.
 * **COLLECT_PLUGINS**: List of collector plugins that Chouette should use to collect metrics. Empty by default. If you don't specify anything, it won't collect any metrics. E.g.: `["host", "k8s"]`.
 * **AGGREGATE_INTERVAL**: How often raw metrics should be aggregated. Default value is 10 for 10 seconds just like in Datadog Agent's "flush interval".
 * **CAPTURE_INTERVAL**: How often Chouette should collect stats from its plugins. Default value is 30.
 * **DATADOG_URL**: By default `https://api.datadoghq.com/api`, but if you have your own small Datadog, you can change it!
+* **HOST**: Name of a host to send along with data to Datadog to determine what device sent this metric.
 * **LOG_LEVEL**: INFO by default, however most of the interesting stuff is hidden in DEBUG which can be too noisy.
 * **METRICS_BULK_SIZE**: Maximum amount of metrics Chouette will try to collect every dispatching attempt. By default it's `10000`. It should be fine not only to handle normal minutely pace, but also to recover relatively fast after a period of lost connectivity.
 * **METRIC_TTL**: Metric Time-To-Live in seconds. Datadog rejects outdated metrics if their timestamp is older than 4 hours. So there is no sense in spending traffic on them. Therefore before every dispatch attempt outdated metrics are being cleaned. It's default value is 14400 for 4 hours. It can be decreased if you don't care about what happened during connectivity problems.

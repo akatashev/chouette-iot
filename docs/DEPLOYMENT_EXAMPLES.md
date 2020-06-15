@@ -45,8 +45,10 @@ spec:
           value: <your Datadog API key goes here>
         - name: COLLECTOR_PLUGINS
           value: '["k8s", "host", "tegrastats"]'  # List of plugins to use as a JSON list.
+        - name: HOST
+          value: nvidia-nano
         - name: GLOBAL_TAGS
-          value: '["host:nvidia-nano", "environment:Development"]'  # List of tags to send as a JSON list.
+          value: '["environment:Development"]'  # List of tags to send as a JSON list.
         - name: METRICS_WRAPPER
           value: "datadog"
         - name: K8S_KEY_PATH
@@ -107,7 +109,8 @@ services:
       - /usr/bin/tegrastats:/usr/bin/tegrastats
     environment:
       - API_KEY=<your Datadog API key goes here>
-      - GLOBAL_TAGS=["host:nvidia-nano", "environment:Development"]  # Let's say, we use the same Nano.
+      - HOST=raspberry-pi
+      - GLOBAL_TAGS=["environment:Development"]
       - COLLECTOR_PLUGINS=["host", "tegrastats", "docker"]  # 'k8s' plugin is replaced by 'docker'
       - METRICS_WRAPPER=datadog
     command: python3 -m chouette_iot

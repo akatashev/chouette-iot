@@ -17,6 +17,7 @@ def sender_actor(monkeypatch, mocked_http):
     """
     MetricsSender Actor fixture.
     """
+    monkeypatch.setenv("host", "test_host")
     actor_ref = MetricsSender.get_instance()
     yield actor_ref
     ActorRegistry.stop_all()
@@ -75,6 +76,7 @@ def expected_metrics(redis_client, sender_proxy, redis_cleanup):
     dicts = [metric.asdict() for metric in metrics]
     for metric in dicts:
         metric["tags"] += global_tags
+        metric["host"] = "test_host"
     yield dicts
 
 
