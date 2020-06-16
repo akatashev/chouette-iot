@@ -54,7 +54,7 @@ class MetricsAggregator(VitalActor):
         super().__init__()
         config = ChouetteConfig()
         self.aggregate_interval = config.aggregate_interval
-        self.metric_ttl = config.metric_ttl
+        self.ttl = config.metric_ttl
         self.metrics_wrapper = WrappersFactory.get_wrapper(config.metrics_wrapper)
         if not self.metrics_wrapper:
             logger.warning(
@@ -85,20 +85,21 @@ class MetricsAggregator(VitalActor):
         logger.debug("[%s] Cleaning up outdated raw metrics.", self.name)
         self.redis = RedisStorage.get_instance()
         self.redis.ask(
-            CleanupOutdatedRecords("metrics", ttl=self.metric_ttl, wrapped=False)
+            CleanupOutdatedRecords("metrics", ttl=self.ttl, wrapped=False)
         )
         if not self.metrics_wrapper:
             return True
 
         keys = self.redis.ask(CollectKeys("metrics", wrapped=False))
         grouped_keys = MetricsMerger.group_metric_keys(keys, self.aggregate_interval)
-        logger.info(
-            "[%s] Separated %s metric keys into %s groups of %s seconds.",
-            self.name,
-            len(keys),
-            len(grouped_keys),
-            self.aggregate_interval,
-        )
+        if keys:
+            logger.info(
+                "[%s] Separated %s metric keys into %s groups of %s seconds.",
+                self.name,
+                len(keys),
+                len(grouped_keys),
+                self.aggregate_interval,
+            )
 
         return all(map(self._process_metrics, grouped_keys))
 
