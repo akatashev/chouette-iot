@@ -1,4 +1,3 @@
-import json
 import time
 from unittest.mock import patch
 
@@ -49,7 +48,7 @@ def stored_wrapped_keys(redis_client, metrics_keys):
 def expected_metrics(redis_client, sender_proxy, redis_cleanup):
     """
     Fixture that stores dummy wrapped metrics values to Redis and
-    returns expected metrics for `collect_metrics` method tests.
+    returns expected metrics for `collect_records` method tests.
 
     Before and after every test queue hash is being cleaned up.
     """
@@ -85,7 +84,7 @@ def test_sender_returns_true(sender_actor, expected_metrics):
     MetricsSender returns True after successful dispatch and
     cleans up dispatched metrics.
 
-    GIVEN: There are metrics in a wrapped metrics queue.
+    GIVEN: There are metrics in the wrapped metrics queue.
     AND: Everything is fine.
     WHEN: MetricsSender receives a message.
     THEN: It returns True.
@@ -94,7 +93,7 @@ def test_sender_returns_true(sender_actor, expected_metrics):
     result = sender_actor.ask("dispatch")
     assert result is True
     sender_proxy = sender_actor.proxy()
-    keys = sender_proxy.collect_keys().get()
+    keys = sender_proxy.collect_keys("metrics").get()
     assert not keys
 
 
@@ -102,7 +101,7 @@ def test_sender_returns_true_on_no_keys(sender_actor, redis_client, redis_cleanu
     """
     MetricsSender returns True if there is nothing to dispatch.
 
-    GIVEN: There are no metrics in a wrapped metrics queue.
+    GIVEN: There are no metrics in the wrapped metrics queue.
     WHEN: MetricsSender receives a message.
     THEN: It returns True, because its work is finished successfully.
     """
@@ -117,10 +116,10 @@ def test_sender_returns_false_on_dispatch_problems(
     """
     MetricsSender returns False on dispatch problems.
 
-    GIVEN: There are metrics in a wrapped metrics queue.
+    GIVEN: There are metrics in the wrapped metrics queue.
     AND: For some reason request to Datadog doesn't return 202 Accepted.
     WHEN: MetricsSender receives a message.
-    THEN: It returns False, because files were not dispatched.
+    THEN: It returns False, because metrics were not dispatched.
     AND: Metrics are not deleted from the queue.
     """
     monkeypatch.setenv("API_KEY", api_key)
@@ -129,8 +128,8 @@ def test_sender_returns_false_on_dispatch_problems(
     result = sender_actor.ask("dispatch")
     assert result is False
     sender_proxy = sender_actor.proxy()
-    keys = sender_proxy.collect_keys().get()
-    values = sender_proxy.collect_metrics(keys).get()
+    keys = sender_proxy.collect_keys("metrics").get()
+    values = sender_proxy.collect_records(keys, "metrics").get()
     assert values == expected_metrics
 
 
@@ -140,18 +139,18 @@ def test_sender_returns_false_on_redis_problems(
     """
     MetricsSender returns False on Redis problems during metrics cleanup.
 
-    GIVEN: There are metrics in a wrapped metrics queue.
+    GIVEN: There are metrics in the wrapped metrics queue.
     AND: Datadog works fine and returns 202.
     AND: On deletion attempt Redis returns RedisError
     WHEN: MetricsSender receives a message.
-    THEN: It returns False, because files were not deleted.
+    THEN: It returns False, because metrics were not deleted.
     """
     with patch.object(Pipeline, "execute", side_effect=RedisError):
         result = sender_actor.ask("dispatch")
     assert result is False
     sender_proxy = sender_actor.proxy()
-    keys = sender_proxy.collect_keys().get()
-    values = sender_proxy.collect_metrics(keys).get()
+    keys = sender_proxy.collect_keys("metrics").get()
+    values = sender_proxy.collect_records(keys, "metrics").get()
     assert values == expected_metrics
 
 
@@ -164,28 +163,28 @@ def test_sender_collect_keys_returns_list_of_keys(sender_proxy, stored_wrapped_k
     THEN: It returns a list of bytes with 3 earliest keys.
     """
     expected_keys = [key for key, ts in stored_wrapped_keys]
-    result = sender_proxy.collect_keys().get()
+    result = sender_proxy.collect_keys("metrics").get()
     assert result == expected_keys[0:3]
 
 
-def test_sender_collect_metrics_returns_list_of_processed_metrics(
+def test_sender_collect_records_returns_list_of_processed_metrics(
     sender_proxy, expected_metrics
 ):
     """
-    MetricsSender's `collect_metrics` methods returns a list of JSON
+    MetricsSender's `collect_records` methods returns a list of JSON
     strings containing stored metrics whose tags are updated with global tags.
 
-    GIVEN: There are records in a wrapped metrics queue.
+    GIVEN: There are records in the wrapped metrics queue.
     AND: One of the records is not a valid metric.
-    WHEN: Method `collect_metrics` is called with their keys.
+    WHEN: Method `collect_records` is called with their keys.
     THEN: It returns a list of dicts.
     AND: These dicts represent previously stored metrics.
     AND: Every metric has global tags added to its `tags` property.
     AND: Invalid record is ignored.
     """
-    keys = sender_proxy.collect_keys().get()
+    keys = sender_proxy.collect_keys("metrics").get()
     assert len(keys) == 3
-    dicts = sender_proxy.collect_metrics(keys).get()
+    dicts = sender_proxy.collect_records(keys, "metrics").get()
     assert dicts == expected_metrics
     assert len(dicts) == 2
 

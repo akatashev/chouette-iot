@@ -6,18 +6,13 @@ import logging
 import zlib
 from typing import Any, List, Optional
 
-import requests
 from chouette_iot_client import ChouetteClient  # type: ignore
-from requests.exceptions import RequestException
 
-from chouette_iot import ChouetteConfig
-from chouette_iot._singleton_actor import VitalActor
+from chouette_iot._sender import Sender
 from chouette_iot.storages import RedisStorage
 from chouette_iot.storages._redis_messages import GetHashSizes
 from chouette_iot.storages.messages import (
     CleanupOutdatedRecords,
-    CollectKeys,
-    CollectValues,
     DeleteRecords,
 )
 
@@ -26,7 +21,7 @@ __all__ = ["MetricsSender"]
 logger = logging.getLogger("chouette-iot")
 
 
-class MetricsSender(VitalActor):
+class MetricsSender(Sender):
     """
     MetricsSender is an actor that communicates to Datadog.
 
@@ -36,7 +31,7 @@ class MetricsSender(VitalActor):
 
     def __init__(self):
         """
-        Next configuration is being extracted from chouette_iotConfig:
+        Next configuration is being extracted from ChouetteConfig:
 
         * api_key: Datadog API key.
         * bulk_size: How many metrics we want to send in one bulk at max.
@@ -48,21 +43,13 @@ class MetricsSender(VitalActor):
             being "outdated". Metrics older than TTL are being dropped.
         * tags: List of global tags to add to every metric. Should have
             something that gives you a chance to understand what device
-            send this metrics. E.g.: a 'host' tag.
+            send these metrics.
         * timeout: Maximum HTTPS Request Timeout for a metrics dispatch
             request.
         """
         super().__init__()
-        config = ChouetteConfig()
-        self.api_key = config.api_key
-        self.bulk_size = config.metrics_bulk_size
-        self.host = config.host
-        self.datadog_url = config.datadog_url
-        self.metric_ttl = config.metric_ttl
-        self.redis = RedisStorage.get_instance()
-        self.send_self_metrics = config.send_self_metrics
-        self.tags = config.global_tags
-        self.timeout = int(config.release_interval * 0.8)
+        self.bulk_size = self.config.metrics_bulk_size
+        self.ttl = self.config.metric_ttl
 
     def on_receive(self, message: Any) -> bool:
         """
@@ -84,13 +71,13 @@ class MetricsSender(VitalActor):
         logger.debug("[%s] Cleaning up outdated wrapped metrics.", self.name)
         self.redis = RedisStorage.get_instance()
         self.redis.ask(
-            CleanupOutdatedRecords("metrics", ttl=self.metric_ttl, wrapped=True)
+            CleanupOutdatedRecords("metrics", ttl=self.ttl, wrapped=True)
         )
-        keys = self.collect_keys()
+        keys = self.collect_keys("metrics")
         if not keys:
             logger.info("[%s] Nothing to dispatch.", self.name)
             return True
-        metrics = self.collect_metrics(keys)
+        metrics = self.collect_records(keys, "metrics")
         dispatched = self.dispatch_to_datadog(metrics)
         if dispatched:
             cleaned_up = self.redis.ask(DeleteRecords("metrics", keys, wrapped=True))
@@ -115,7 +102,7 @@ class MetricsSender(VitalActor):
 
         Args:
             b_metric: Bytes object representing a metric as a JSON object.
-        Returns: Dict representing a metric with updated tags..
+        Returns: Dict representing a metric with updated tags.
         """
         try:
             d_metric = json.loads(b_metric)
@@ -125,33 +112,6 @@ class MetricsSender(VitalActor):
         if self.host:
             d_metric["host"] = self.host
         return d_metric
-
-    def collect_keys(self) -> List[bytes]:
-        """
-        Requests a `self.bulk_size` amount of wrapped metrics keys from Redis.
-
-        It returns the oldest keys to retrieve as much data as possible in case
-        of a networking outage.
-
-        Returns: List of metrics keys as bytes.
-        """
-        request = CollectKeys("metrics", amount=self.bulk_size, wrapped=True)
-        keys_and_ts = self.redis.ask(request)
-        logger.debug("[%s] Collected %s keys.", self.name, len(keys_and_ts))
-        return list(map(lambda pair: pair[0], keys_and_ts))
-
-    def collect_metrics(self, keys: List[bytes]) -> List[dict]:
-        """
-        Gets a list of metrics from Redis, adds global tags to them and prepare
-        them to be dispatched to Datadog.
-
-        Args:
-            keys: List of metrics keys as bytes.
-        Returns: List of prepared to dispatch metrics.
-        """
-        b_metrics = self.redis.ask(CollectValues("metrics", keys, wrapped=True))
-        logger.debug("[%s] Collected %s metrics.", self.name, len(b_metrics))
-        return list(filter(None, map(self.add_global_tags, b_metrics)))
 
     def dispatch_to_datadog(self, metrics: List[dict]) -> bool:
         """
@@ -168,7 +128,7 @@ class MetricsSender(VitalActor):
         effect, this function sends 3 metrics:
         1. How many messages are queued to be dispatched this
         minute.
-        2. How many metrics were send (if they were sent).
+        2. How many metrics were sent (if they were sent).
         3. How many bytes were sent (if they were sent).
 
         Args:
@@ -188,51 +148,12 @@ class MetricsSender(VitalActor):
             metrics_num,
             int(message_size / 1024),
         )
-        dispatched = self._post_to_datadog(compressed_message)
+        dispatched = self._post_to_datadog(compressed_message, "v1/series")
         if not dispatched:
             return False
         if self.send_self_metrics:
             ChouetteClient.count("chouette.dispatched.metrics.number", metrics_num)
             ChouetteClient.count("chouette.dispatched.metrics.bytes", message_size)
-        return True
-
-    def _post_to_datadog(self, message: bytes) -> bool:
-        """
-        Implements actual HTTPS interaction with Datadog.
-
-        On message 202 Accepted returns True, on any other message or
-        RequestsException returns False and logs an error message.
-
-        Arg:
-            message: Compressed message to sent.
-        Return: Bool that shows whether the message was accepted.
-        """
-        try:
-            dd_response = requests.post(
-                f"{self.datadog_url}/v1/series",
-                params={"api_key": self.api_key},
-                data=message,
-                headers={
-                    "Content-Type": "application/json",
-                    "Content-Encoding": "deflate",
-                },
-                timeout=self.timeout,
-            )
-            if not dd_response.status_code == 202:
-                logger.error(
-                    "[%s] Unexpected response from Datadog: %s: %s",
-                    self.name,
-                    dd_response.status_code,
-                    dd_response.text,
-                )
-                return False
-        except (RequestException, IOError) as error:
-            logger.error(
-                "[%s] Could not dispatch metrics due to a HTTP error: %s",
-                self.datadog_url,
-                error,
-            )
-            return False
         return True
 
     def store_queue_size(self) -> None:

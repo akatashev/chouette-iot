@@ -8,7 +8,6 @@ from typing import Iterator
 
 from pykka import ActorRef  # type: ignore
 
-
 __all__ = ["StatsRequest", "StatsResponse"]
 
 

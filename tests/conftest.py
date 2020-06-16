@@ -180,7 +180,7 @@ def mocked_http(monkeypatch, k8s_stats_response, docker_stats_response, requests
     """
     Datadog host, K8s stats and Docker stats mocking fixture.
 
-    Datadog host:
+    Datadog hosts:
     On API Key `correct` it returns 202 Accepted.
     On API Key `authfail` it returns 403 Authentication error.
     On API Key `exc` it raises a ConnectTimeout exception.
@@ -207,6 +207,9 @@ def mocked_http(monkeypatch, k8s_stats_response, docker_stats_response, requests
     requests_mock.register_uri("POST", "/v1/series?api_key=correct", status_code=202)
     requests_mock.register_uri("POST", "/v1/series?api_key=authfail", status_code=403)
     requests_mock.register_uri("POST", "/v1/series?api_key=exc", exc=ConnectTimeout)
+    requests_mock.register_uri("POST", "/v1/input?api_key=correct", status_code=202)
+    requests_mock.register_uri("POST", "/v1/input?api_key=authfail", status_code=403)
+    requests_mock.register_uri("POST", "/v1/input?api_key=exc", exc=ConnectTimeout)
     # K8S:
     requests_mock.register_uri("GET", "/stats/summary", text=k8s_stats_response)
     requests_mock.register_uri("GET", "/stats/notjson", text='{"node": []')

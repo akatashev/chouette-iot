@@ -23,8 +23,10 @@ class ChouetteConfig(BaseSettings):
     aggregate_interval: int = 10
     capture_interval: int = 30
     datadog_url: str = "https://api.datadoghq.com/api"
+    datadog_logs_url: str = "https://http-intake.logs.datadoghq.com"
     host: str = ""
     log_level: str = "INFO"
+    log_ttl: int = 64800
     metrics_bulk_size: int = 10000
     metric_ttl: int = 14400
     metrics_wrapper: str = "datadog"

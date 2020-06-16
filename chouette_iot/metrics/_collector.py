@@ -4,7 +4,7 @@ MetricsCollector class.
 import logging
 from typing import Any
 
-from pykka import ActorRef, ActorRegistry  # type: ignore
+from pykka import ActorRef  # type: ignore
 
 from chouette_iot import ChouetteConfig
 from chouette_iot._singleton_actor import VitalActor

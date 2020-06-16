@@ -4,6 +4,7 @@ SingletonActor class.
 import logging
 
 from pykka import ActorRef, ActorRegistry, ThreadingActor  # type: ignore
+
 from chouette_iot import Scheduler
 
 __all__ = ["SingletonActor", "VitalActor"]

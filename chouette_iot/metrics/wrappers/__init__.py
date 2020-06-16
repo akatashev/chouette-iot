@@ -4,9 +4,9 @@ chouette.metrics.wrappers
 # pylint: disable=too-few-public-methods
 from typing import Optional
 
+from ._datadog_wrapper import DatadogWrapper
 from ._metrics_wrapper import MetricsWrapper
 from ._simple_wrapper import SimpleWrapper
-from ._datadog_wrapper import DatadogWrapper
 
 __all__ = ["SimpleWrapper", "WrappersFactory", "DatadogWrapper"]
 
