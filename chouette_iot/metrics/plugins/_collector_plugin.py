@@ -3,7 +3,7 @@ CollectorPlugin: Abstract class for all metric collectors.
 """
 # pylint: disable=too-few-public-methods
 from abc import ABC
-from typing import Iterator, List, Optional, Tuple
+from typing import Generator, List, Optional, Tuple
 
 from chouette_iot.metrics import WrappedMetric
 
@@ -21,7 +21,7 @@ class CollectorPlugin(ABC):
         timestamp: float = None,
         tags: Optional[List[str]] = None,
         metric_type: str = "gauge",
-    ) -> Iterator[WrappedMetric]:
+    ) -> Generator[WrappedMetric, None, None]:
         """
         Generates a list of WrappedMetric objects.
 
@@ -30,9 +30,9 @@ class CollectorPlugin(ABC):
             timestamp: Metric collection timestamp.
             tags: Metric tags.
             metric_type: Metric type.
-        Returns: Iterator over WrappedMetric objects.
+        Returns: Generator of WrappedMetric objects.
         """
-        wrapped_metrics: List[WrappedMetric] = [
+        wrapped_metrics: Generator[WrappedMetric, None, None] = (
             WrappedMetric(
                 metric=metric_name,
                 type=metric_type,
@@ -42,5 +42,5 @@ class CollectorPlugin(ABC):
             )
             for metric_name, metric_value in metrics
             if metric_value
-        ]
-        return iter(wrapped_metrics)
+        )
+        return wrapped_metrics
