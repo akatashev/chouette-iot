@@ -10,6 +10,7 @@ from pythonjsonlogger import jsonlogger  # type: ignore
 
 from chouette_iot import Scheduler, ChouetteConfig, Cancellable
 from chouette_iot._singleton_actor import SingletonActor
+from chouette_iot.logs import LogsSender
 from chouette_iot.metrics import MetricsCollector, MetricsAggregator, MetricsSender
 
 logger = logging.getLogger("chouette-iot")
@@ -72,8 +73,9 @@ class Chouette:
         timers = []
         config = ChouetteConfig()
         cls.setup_logging(config.log_level)
-        # Sender actor:
+        # Sender actors:
         timers.append(cls.schedule_call(config.release_interval, MetricsSender, "send"))
+        timers.append(cls.schedule_call(config.release_interval, LogsSender, "send"))
         # Aggregator actor:
         timers.append(
             cls.schedule_call(config.aggregate_interval, MetricsAggregator, "aggregate")
