@@ -11,5 +11,5 @@ Another useful Chouette concept is a **MetricsWrapper**. That's an object that d
 ### Links:
 1. **Deployment examples** can be found [here](./DEPLOYMENT_EXAMPLES.md).
 2. Chouette **application design** is described [here](./DESIGN.md).
-3. Information about available **Collector Plugins** can be found [here](./COLLECTOR_PLUGINS.md).
+3. Information about available metrics **Collector Plugins** can be found [here](./COLLECTOR_PLUGINS.md).
 

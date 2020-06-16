@@ -1,7 +1,5 @@
 """
-chouette.Scheduler object for Gevent-based systems.
-
-It won't work without patching time.sleep with gevent.sleep.
+chouette.Scheduler object based on a threading.Timer object
 """
 import logging
 import time

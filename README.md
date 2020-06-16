@@ -6,11 +6,11 @@
 [![CircleCI](https://circleci.com/gh/akatashev/chouette-iot/tree/dev.svg?style=svg)](https://app.circleci.com/pipelines/github/akatashev/chouette-iot)
 
 
-**Chouette** is a [Pykka](https://www.pykka.org/) based **Datadog** compatible modular metrics collection agent and system monitoring solution for IoT solutions based on such devices as Raspberry Pi or Nvidia Jetson.
+**Chouette** is a [Pykka](https://www.pykka.org/) based **Datadog** compatible modular metrics and logs collection agent and system monitoring solution for IoT devices such as Raspberry Pi or Nvidia Jetson.
 
-It uses Redis as a broker for metrics from other applications and as a storage for ready to dispatch metrics. Periodically it tries to dispatch data to Datadog. If it doesn't happen for some reason, metrics are being preserved in their queue to be dispatched later, when connectivity is restored or Chouette is redeployed with correct configuration.
+It uses Redis as a broker for messages from other applications and as a storage for ready to dispatch metrics. Periodically it tries to dispatch data to Datadog. If it failes for some reason, messages are being preserved in their queue to be dispatched later, when connectivity is restored or Chouette is redeployed with correct configuration.
 
-Applications should use [Chouette-IoT-client](https://github.com/akatashev/chouette-iot-client) library to successfully send metrics via Chouette-Iot.
+Applications should use [Chouette-IoT-client](https://github.com/akatashev/chouette-iot-client) library to successfully receive messages (metrics and logs) from applications.
 
 ## Metrics collection agent?
 
@@ -25,6 +25,10 @@ Aggregation means that metrics of the same type produced during the same period 
 Chouette calls this process of transforming raw metrics to ready to dispatch metrics **wrapping**. It uses **MetricWrapper** objects to do this. By using custom **wrappers** a user is able to cast raw metrics into any number and kind of actual Datadog metrics.
 
 Every 60 seconds (*by default*) a component named MetricsSender gets ready to dispatch metrics from a queue, compresses them and sends them to Datadog.
+
+## Logs collection?
+
+**Chouette-IoT-Client** has a **ChouetteLogHandler** custom log handler. When it's added to an application logger, it can send log messages of a chosen level to a storage. Every 60 seconds (by default) Chouette checks its logs queue, compresses these logs and tries to send them to Datadog.
 
 ## System monitoring solution?
 
@@ -56,13 +60,15 @@ They are:
 * **AGGREGATE_INTERVAL**: How often raw metrics should be aggregated. Default value is 10 for 10 seconds just like in Datadog Agent's "flush interval".
 * **CAPTURE_INTERVAL**: How often Chouette should collect stats from its plugins. Default value is 30.
 * **DATADOG_URL**: By default `https://api.datadoghq.com/api`, but if you have your own small Datadog, you can change it!
+* **DATADOG_LOGS_URL**: By default `https://http-intake.logs.datadoghq.com`. 
 * **HOST**: Name of a host to send along with data to Datadog to determine what device sent this metric.
 * **LOG_LEVEL**: INFO by default, however most of the interesting stuff is hidden in DEBUG which can be too noisy.
+* **LOG_TTL**: Log Time-To-Live in seconds. Datadog ignores log messages emitted more than 18 hours ago. So there is no sense in dispatching these logs. Default value is 64800 for 18 hours. 
 * **METRICS_BULK_SIZE**: Maximum amount of metrics Chouette will try to collect every dispatching attempt. By default it's `10000`. It should be fine not only to handle normal minutely pace, but also to recover relatively fast after a period of lost connectivity.
 * **METRIC_TTL**: Metric Time-To-Live in seconds. Datadog rejects outdated metrics if their timestamp is older than 4 hours. So there is no sense in spending traffic on them. Therefore before every dispatch attempt outdated metrics are being cleaned. It's default value is 14400 for 4 hours. It can be decreased if you don't care about what happened during connectivity problems.
 * **METRICS_WRAPPER**: Name of a metrics wrapper to use. Default is `datadog`. Another option is `simple` or any other that you implement yourself. Just don't forget to add it to the `WrappersFactory` class in `chouette/metrics/wrappers/__init__.py`.
-* **RELEASE_INTERVAL**: How often Chouette should dispatch compressed metrics to Datadog. Default value is 60.
-* **SEND_SELF_METRICS**: Whether Chouette should also send its owl metrics like an amount of sent bytes and number of sent metrics. By default `True`.
+* **RELEASE_INTERVAL**: How often Chouette should dispatch compressed messages to Datadog. Default value is 60.
+* **SEND_SELF_METRICS**: Whether Chouette should also send its owl metrics like an amount of sent bytes and number of sent messages. By default `True`.
 
 ## Documentation
 

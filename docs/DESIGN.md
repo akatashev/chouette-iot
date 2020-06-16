@@ -37,3 +37,8 @@ Plugins examples are: **K8sCollector** that collects metrics from K8s Stats Serv
 On startup Chouette takes desired intervals from environment variables and schedules periodical dispatching of messages to **MetricsAggregator**, **MetricsCollector** and **MetricsSender**.
 
 If for some reason one of these three actors is crashed, application stops.
+
+## Chouette Logs Workflow
+
+Chouette logs workflow is just a single actor named **Logs Sender**. It works exactly like **Metrics Sender** does, but it sends compressed payload to another endpoint and TTL of log records is bigger than TTL of metrics.  
+**Logs Sender** and **Metrics Sender** are both inherited from the same **Sender** abstract class.
