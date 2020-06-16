@@ -72,7 +72,7 @@ class LogsSender(Sender):
         )
         keys = self.collect_keys("logs")
         if not keys:
-            logger.info("[%s] Nothing to dispatch.", self.name)
+            logger.debug("[%s] Nothing to dispatch.", self.name)
             return True
         logs = self.collect_records(keys, "logs")
         dispatched = self.dispatch_to_datadog(logs)

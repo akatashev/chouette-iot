@@ -207,7 +207,7 @@ def mocked_http(monkeypatch, k8s_stats_response, docker_stats_response, requests
     requests_mock.register_uri("POST", "/v1/series?api_key=correct", status_code=202)
     requests_mock.register_uri("POST", "/v1/series?api_key=authfail", status_code=403)
     requests_mock.register_uri("POST", "/v1/series?api_key=exc", exc=ConnectTimeout)
-    requests_mock.register_uri("POST", "/v1/input?api_key=correct", status_code=202)
+    requests_mock.register_uri("POST", "/v1/input?api_key=correct", status_code=200)
     requests_mock.register_uri("POST", "/v1/input?api_key=authfail", status_code=403)
     requests_mock.register_uri("POST", "/v1/input?api_key=exc", exc=ConnectTimeout)
     # K8S:

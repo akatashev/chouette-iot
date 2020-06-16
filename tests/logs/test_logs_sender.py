@@ -117,7 +117,7 @@ def test_sender_returns_false_on_dispatch_problems(
     LogsSender returns False on dispatch problems.
 
     GIVEN: There are logs in the logs queue.
-    AND: For some reason request to Datadog doesn't return 202 Accepted.
+    AND: For some reason request to Datadog doesn't return 200 OK.
     WHEN: LogsSender receives a message.
     THEN: It returns False, because logs were not dispatched.
     AND: Logs are not deleted from the queue.
@@ -140,7 +140,7 @@ def test_sender_returns_false_on_redis_problems(
     LogsSender returns False on Redis problems during logs cleanup.
 
     GIVEN: There are logs in the logs queue.
-    AND: Datadog works fine and returns 202.
+    AND: Datadog works fine and returns 200.
     AND: On deletion attempt Redis returns RedisError
     WHEN: LogsSender receives a message.
     THEN: It returns False, because logs were not deleted.

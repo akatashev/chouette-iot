@@ -75,7 +75,7 @@ class MetricsSender(Sender):
         )
         keys = self.collect_keys("metrics")
         if not keys:
-            logger.info("[%s] Nothing to dispatch.", self.name)
+            logger.debug("[%s] Nothing to dispatch.", self.name)
             return True
         metrics = self.collect_records(keys, "metrics")
         dispatched = self.dispatch_to_datadog(metrics)

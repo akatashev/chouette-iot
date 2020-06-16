@@ -128,7 +128,7 @@ class Sender(VitalActor):
                 },
                 timeout=self.timeout,
             )
-            if not dd_response.status_code == 202:
+            if not dd_response.status_code in [200, 202]:
                 logger.error(
                     "[%s] Unexpected response from Datadog: %s: %s",
                     self.name,
