@@ -1,5 +1,5 @@
 """
-Chouette __main__ entry point.
+Chouette main object
 """
 import logging
 import sys
@@ -73,6 +73,7 @@ class Chouette:
         timers = []
         config = ChouetteConfig()
         cls.setup_logging(config.log_level)
+        logger.info("Starting Chouette-IoT.")
         # Sender actors:
         timers.append(cls.schedule_call(config.release_interval, MetricsSender, "send"))
         timers.append(cls.schedule_call(config.release_interval, LogsSender, "send"))
@@ -87,7 +88,3 @@ class Chouette:
             cls.schedule_call(config.capture_interval, MetricsCollector, "collect")
         )
         return timers
-
-
-if __name__ == "__main__":
-    Chouette.run()

@@ -194,7 +194,8 @@ class Sender(VitalActor):
                 return False
         except (RequestException, IOError) as error:
             logger.error(
-                "[%s] Could not dispatch metrics due to a HTTP error: %s",
+                "[%s] Could not dispatch metrics to %s due to an HTTP error: %s",
+                self.name,
                 self.datadog_url,
                 error,
             )

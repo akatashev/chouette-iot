@@ -2,6 +2,7 @@
 SingletonActor class.
 """
 import logging
+from threading import RLock
 
 from pykka import ActorRef, ActorRegistry, ThreadingActor  # type: ignore
 
@@ -20,6 +21,7 @@ class SingletonActor(ThreadingActor):
     SingletonActor is able to return an ActorRef of a running instance
     of its class or to start a new instance and return its ActorRef.
     """
+    lock: RLock = RLock()
 
     def __init__(self):
         super().__init__()
@@ -33,13 +35,14 @@ class SingletonActor(ThreadingActor):
 
         Returns: ActorRef.
         """
-        instances = ActorRegistry.get_by_class(cls)
-        if instances:
-            return instances.pop()
-        return cls.start()
+        with cls.lock:
+            instances = ActorRegistry.get_by_class(cls)
+            if instances:
+                return instances.pop()
+            return cls.start()
 
     def on_failure(
-        self, exception_type: str, exception_value: str, traceback
+            self, exception_type: str, exception_value: str, traceback
     ) -> None:  # pragma: no cover
         """
         Logs an exception if the actor is crashed.
