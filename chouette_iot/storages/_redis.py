@@ -13,13 +13,7 @@ from redis import Redis, RedisError
 
 from chouette_iot._singleton_actor import SingletonActor
 from ._redis_messages import GetRedisQueues, GetHashSizes
-from .messages import (
-    CleanupOutdatedRecords,
-    CollectKeys,
-    CollectValues,
-    DeleteRecords,
-    StoreRecords,
-)
+from .messages import *
 
 __all__ = ["RedisStorage"]
 

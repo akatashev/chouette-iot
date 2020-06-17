@@ -12,9 +12,9 @@ from pydantic import BaseSettings, ValidationError  # type: ignore
 from pykka import ActorDeadError  # type: ignore
 
 from chouette_iot._singleton_actor import SingletonActor
-from chouette_iot.metrics import WrappedMetric
 from ._collector_plugin import CollectorPlugin
 from .messages import StatsRequest, StatsResponse
+from .._metrics import WrappedMetric
 
 __all__ = ["K8sCollector"]
 

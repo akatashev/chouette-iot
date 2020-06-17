@@ -7,8 +7,8 @@ from typing import Any, List, Set
 
 from pydantic import BaseSettings  # type: ignore
 
-from chouette_iot.metrics import MergedMetric, WrappedMetric
 from ._metrics_wrapper import MetricsWrapper
+from .._metrics import MergedMetric, WrappedMetric
 
 __all__ = ["DatadogWrapper"]
 

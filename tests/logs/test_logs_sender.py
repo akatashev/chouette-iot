@@ -111,7 +111,7 @@ def test_sender_returns_true_on_no_keys(sender_actor, redis_client, redis_cleanu
 
 @pytest.mark.parametrize("api_key", ["authfail", "exc"])
 def test_sender_returns_false_on_dispatch_problems(
-        monkeypatch, expected_logs, api_key, mocked_http
+    monkeypatch, expected_logs, api_key, mocked_http
 ):
     """
     LogsSender returns False on dispatch problems.
@@ -134,7 +134,7 @@ def test_sender_returns_false_on_dispatch_problems(
 
 
 def test_sender_returns_false_on_redis_problems(
-        monkeypatch, expected_logs, sender_actor
+    monkeypatch, expected_logs, sender_actor
 ):
     """
     LogsSender returns False on Redis problems during logs cleanup.
@@ -154,9 +154,7 @@ def test_sender_returns_false_on_redis_problems(
     assert values == expected_logs
 
 
-def test_sender_collect_logs_returns_list_of_logs(
-        sender_proxy, expected_logs
-):
+def test_sender_collect_logs_returns_list_of_logs(sender_proxy, expected_logs):
     """
     LogsSender's `collect_records` methods returns a list of JSON
     strings containing stored logs whose tags are updated with global tags.
@@ -214,19 +212,19 @@ def test_sender_sends_self_metrics(monkeypatch, expected_logs, send_self_metrics
     Scenario 1:
     GIVEN: Option `send_self_metrics` is set to True.
     WHEN: `dispatch_to_datadog` method is called and executed successfully.
-    THEN: 2 `chouette.logs.dispatched` raw metrics are stored to Redis.
+    THEN: 2 `chouette.logs.dispatched` raw metrics are stored to the storage.
 
     Scenario 2:
     GIVEN: Option `send_self_metrics` is set to False.
     WHEN: `dispatch_to_datadog` method is called and executed successfully.
-    THEN: No raw metrics are stored to Redis.
+    THEN: No raw metrics are stored to the storage.
     """
     monkeypatch.setenv("SEND_SELF_METRICS", str(send_self_metrics))
     ActorRegistry.stop_all()
     sender_proxy = LogsSender.get_instance().proxy()
     sender_proxy.dispatch_to_datadog(expected_logs).get()
-    redis = sender_proxy.redis.get()
+    storage = sender_proxy.storage.get()
     # Sleep due to async ChouetteClient nature:
     time.sleep(0.1)
-    keys = redis.ask(CollectKeys("metrics", wrapped=False))
+    keys = storage.ask(CollectKeys("metrics", wrapped=False))
     assert (len(keys) == 2) is send_self_metrics

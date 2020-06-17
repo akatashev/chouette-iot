@@ -1,7 +1,6 @@
 import os
 
 import pytest
-import requests_mock
 from pykka import ActorRegistry
 from redis import Redis
 from requests.exceptions import ConnectTimeout

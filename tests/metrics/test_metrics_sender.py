@@ -7,7 +7,7 @@ from redis import RedisError
 from redis.client import Pipeline
 
 from chouette_iot.metrics import MetricsSender
-from chouette_iot.metrics import WrappedMetric
+from chouette_iot.metrics._metrics import WrappedMetric
 from chouette_iot.storages.messages import StoreRecords, CollectKeys
 
 
@@ -62,7 +62,7 @@ def expected_metrics(redis_client, sender_proxy, redis_cleanup):
         ),
         WrappedMetric(metric="metric-2", type="gauge", value=20, timestamp=time.time()),
     ]
-    sender_proxy.redis.get().ask(StoreRecords("metrics", metrics, wrapped=True))
+    sender_proxy.storage.get().ask(StoreRecords("metrics", metrics, wrapped=True))
     # Adding a "metric" that is not JSON parseable:
     redis_client.zadd(
         "chouette:metrics:wrapped.keys", {"wrong-metric-uid": time.time()}
@@ -230,19 +230,20 @@ def test_sender_sends_self_metrics(monkeypatch, expected_metrics, send_self_metr
          scenario this "extra" metrics is an invalid metrics but normally
          it happens when there is too many metrics for one batch).
     WHEN: `dispatch_to_datadog` method is called and executed successfully.
-    THEN: 2 `chouette.metrics.dispatched` raw metrics are stored to Redis.
-    AND: `choette.queue.metrics` metric is stored to Redis.
+    THEN: 2 `chouette.metrics.dispatched` raw metrics are stored to the
+          storage.
+    AND: `choette.queue.metrics` metric is stored to the storage.
 
     Scenario 2:
     GIVEN: Option `send_self_metrics` is set to False.
     WHEN: `dispatch_to_datadog` method is called and executed successfully.
-    THEN: No raw metrics are stored to Redis.
+    THEN: No raw metrics are stored to the storage.
     """
     monkeypatch.setenv("SEND_SELF_METRICS", str(send_self_metrics))
     ActorRegistry.stop_all()
     sender_proxy = MetricsSender.get_instance().proxy()
     sender_proxy.dispatch_to_datadog(expected_metrics).get()
-    redis = sender_proxy.redis.get()
+    redis = sender_proxy.storage.get()
     # Sleep due to async ChouetteClient nature:
     time.sleep(0.1)
     keys = redis.ask(CollectKeys("metrics", wrapped=False))

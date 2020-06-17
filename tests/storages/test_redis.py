@@ -7,7 +7,7 @@ from redis import Redis, RedisError
 from redis.client import Pipeline
 
 import chouette_iot.storages.messages as msgs
-from chouette_iot.metrics import WrappedMetric
+from chouette_iot.metrics._metrics import WrappedMetric
 from chouette_iot.storages import RedisStorage
 from chouette_iot.storages._redis_messages import GetRedisQueues, GetHashSizes
 

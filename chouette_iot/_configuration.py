@@ -32,3 +32,4 @@ class ChouetteConfig(BaseSettings):
     metrics_wrapper: str = "datadog"
     release_interval: int = 60
     send_self_metrics: bool = True
+    storage_type: str = "redis"

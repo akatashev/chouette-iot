@@ -27,6 +27,6 @@ class WrappersFactory:
             wrapper_name: Name of a wrapper as a string.
         Returns: ActorRef or None.
         """
-        wrapper_class = cls.wrapper_classes.get(wrapper_name)
+        wrapper_class = cls.wrapper_classes.get(wrapper_name.lower())
         wrapper = wrapper_class() if wrapper_class else None
         return wrapper

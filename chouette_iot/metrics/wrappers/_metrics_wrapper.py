@@ -5,7 +5,7 @@ MetricsWrapper abstract class.
 from abc import ABC, abstractmethod
 from typing import List
 
-from chouette_iot.metrics import MergedMetric, WrappedMetric
+from .._metrics import MergedMetric, WrappedMetric
 
 __all__ = ["MetricsWrapper"]
 

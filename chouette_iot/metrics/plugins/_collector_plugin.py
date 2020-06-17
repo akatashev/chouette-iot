@@ -5,7 +5,7 @@ CollectorPlugin: Abstract class for all metric collectors.
 from abc import ABC
 from typing import Generator, List, Optional, Tuple
 
-from chouette_iot.metrics import WrappedMetric
+from .._metrics import WrappedMetric
 
 __all__ = ["CollectorPlugin"]
 

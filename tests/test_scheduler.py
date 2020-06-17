@@ -1,5 +1,5 @@
-from time import sleep
 from threading import Timer
+from time import sleep
 
 import pytest
 

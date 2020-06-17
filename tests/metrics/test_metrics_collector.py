@@ -1,11 +1,13 @@
-from chouette_iot.metrics import MetricsCollector
-from chouette_iot.metrics.plugins.messages import StatsResponse
-from chouette_iot.metrics.plugins import PluginsFactory
-from chouette_iot.storages.messages import StoreRecords
-from chouette_iot.storages import RedisStorage
+from unittest.mock import patch
+
 import pytest
 from pykka import ActorRegistry
-from unittest.mock import patch
+
+from chouette_iot.metrics import MetricsCollector
+from chouette_iot.metrics.plugins import PluginsFactory
+from chouette_iot.metrics.plugins.messages import StatsResponse
+from chouette_iot.storages import RedisStorage
+from chouette_iot.storages.messages import StoreRecords
 
 
 @pytest.fixture

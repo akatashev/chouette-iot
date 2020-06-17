@@ -1,6 +1,6 @@
 import pytest
 
-from chouette_iot.metrics import MergedMetric, WrappedMetric
+from chouette_iot.metrics._metrics import MergedMetric, WrappedMetric
 from chouette_iot.metrics.wrappers import SimpleWrapper
 
 

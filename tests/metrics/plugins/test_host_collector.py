@@ -9,10 +9,10 @@ Normal interaction between Collectors and plugins MUST be non-blocking.
 """
 from unittest.mock import patch
 
-import pytest
 import psutil
+import pytest
 
-from chouette_iot.metrics import WrappedMetric
+from chouette_iot.metrics._metrics import WrappedMetric
 from chouette_iot.metrics.plugins import HostStatsCollector
 from chouette_iot.metrics.plugins.messages import StatsRequest, StatsResponse
 

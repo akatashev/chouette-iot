@@ -8,7 +8,7 @@ from ._metrics_wrapper import MetricsWrapper
 
 __all__ = ["SimpleWrapper"]
 
-from .. import WrappedMetric, MergedMetric
+from .._metrics import WrappedMetric, MergedMetric
 
 
 class SimpleWrapper(MetricsWrapper):

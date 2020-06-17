@@ -10,11 +10,11 @@ from typing import Iterator, List, Tuple
 from pykka import ActorDeadError  # type: ignore
 
 from chouette_iot._singleton_actor import SingletonActor
-from chouette_iot.metrics import WrappedMetric
-from chouette_iot.storages import RedisStorage
+from chouette_iot.storages import StoragesFactory
 from chouette_iot.storages._redis_messages import GetHashSizes, GetRedisQueues
 from ._collector_plugin import CollectorPlugin
 from .messages import StatsRequest, StatsResponse
+from .._metrics import WrappedMetric
 
 __all__ = ["DramatiqCollector"]
 
@@ -30,8 +30,12 @@ class DramatiqCollector(SingletonActor):
     """
 
     def __init__(self):
+        """
+        This Collector for now works ONLY for Dramatiq that uses Redis
+        as a broker, so `self.redis` is used here intentionally.
+        """
         super().__init__()
-        self.redis = RedisStorage.get_instance()
+        self.redis = StoragesFactory.get_storage("redis")
 
     def on_receive(self, message: StatsRequest) -> None:
         """

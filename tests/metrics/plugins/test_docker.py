@@ -1,8 +1,10 @@
 import pytest
 
-from chouette_iot.metrics import WrappedMetric
 from chouette_iot.metrics.plugins import DockerCollector
-from chouette_iot.metrics.plugins._docker_collector import DockerCollectorPlugin
+from chouette_iot.metrics.plugins._docker_collector import (
+    DockerCollectorPlugin,
+    WrappedMetric,
+)
 from chouette_iot.metrics.plugins.messages import StatsRequest, StatsResponse
 
 

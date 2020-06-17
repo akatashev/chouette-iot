@@ -9,11 +9,6 @@ from typing import Any, List, Optional
 from chouette_iot_client import ChouetteClient  # type: ignore
 
 from chouette_iot._sender import Sender
-from chouette_iot.storages import RedisStorage
-from chouette_iot.storages.messages import (
-    CleanupOutdatedRecords,
-    DeleteRecords,
-)
 
 __all__ = ["LogsSender"]
 
@@ -50,45 +45,13 @@ class LogsSender(Sender):
 
     def on_receive(self, message: Any) -> bool:
         """
-        On any message LogsSender:
-
-        1. Performs outdated logs cleanup prior to gathering data.
-        2. Gets a bulk of keys from a RedisStorage actor.
-        3. Collects logs and adds global tags to every of them.
-        4. Tries to dispatch them as in a compressed message.
-        5. If they were dispatched successfully - deletes data from Redis.
-
-        To preserve the exact order of actions, LogsSender intentionally
-        communicates to RedisStorage in a blocking manner, via `ask` requests.
+        On any message executes a process_records method for "logs".
 
         Args:
             message: Can be anything.
         Returns: Whether data was dispatched and cleaned successfully.
         """
-        logger.debug("[%s] Cleaning up outdated logs.", self.name)
-        self.redis = RedisStorage.get_instance()
-        self.redis.ask(
-            CleanupOutdatedRecords("logs", ttl=self.ttl, wrapped=True)
-        )
-        keys = self.collect_keys("logs")
-        if not keys:
-            logger.debug("[%s] Nothing to dispatch.", self.name)
-            return True
-        logs = self.collect_records(keys, "logs")
-        dispatched = self.dispatch_to_datadog(logs)
-        if dispatched:
-            cleaned_up = self.redis.ask(DeleteRecords("logs", keys, wrapped=True))
-            if not cleaned_up:
-                logger.error(
-                    "[%s] Logs were dispatched, but not cleaned up!", self.name
-                )
-        else:
-            logger.warning(
-                "[%s] Logs were neither dispatched, nor cleaned.", self.name
-            )
-            cleaned_up = False
-
-        return dispatched and cleaned_up
+        return self.process_records("logs")
 
     def add_global_tags(self, b_log: bytes) -> Optional[dict]:
         """

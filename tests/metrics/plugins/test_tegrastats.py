@@ -3,7 +3,7 @@ import os
 import pytest
 from pykka import ActorRegistry
 
-from chouette_iot.metrics import WrappedMetric
+from chouette_iot.metrics._metrics import WrappedMetric
 from chouette_iot.metrics.plugins import TegrastatsCollector
 from chouette_iot.metrics.plugins._tegrastats_collector import TegrastatsPlugin
 from chouette_iot.metrics.plugins.messages import StatsRequest, StatsResponse

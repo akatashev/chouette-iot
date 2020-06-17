@@ -6,9 +6,7 @@ from typing import Any, List, Optional, Tuple
 
 from chouette_iot import ChouetteConfig
 from chouette_iot._singleton_actor import VitalActor
-from chouette_iot.metrics import MergedMetric
-from chouette_iot.metrics.wrappers import WrappersFactory
-from chouette_iot.storages import RedisStorage
+from chouette_iot.storages import StoragesFactory
 from chouette_iot.storages.messages import (
     CleanupOutdatedRecords,
     CollectKeys,
@@ -16,6 +14,8 @@ from chouette_iot.storages.messages import (
     DeleteRecords,
     StoreRecords,
 )
+from ._metrics import MergedMetric
+from .wrappers import WrappersFactory
 
 __all__ = ["MetricsAggregator"]
 
@@ -62,7 +62,8 @@ class MetricsAggregator(VitalActor):
                 "Raw metrics won't be collected and aggregated.",
                 self.name,
             )
-        self.redis = None
+        self.storage_type = config.storage_type
+        self.storage = None
 
     def on_receive(self, message: Any) -> bool:
         """
@@ -83,14 +84,13 @@ class MetricsAggregator(VitalActor):
         Return: Whether all the raw metrics were processed and stored.
         """
         logger.debug("[%s] Cleaning up outdated raw metrics.", self.name)
-        self.redis = RedisStorage.get_instance()
-        self.redis.ask(
-            CleanupOutdatedRecords("metrics", ttl=self.ttl, wrapped=False)
-        )
+        self.storage = StoragesFactory.get_storage(self.storage_type)
+        self.storage.ask(CleanupOutdatedRecords("metrics", ttl=self.ttl, wrapped=False))
         if not self.metrics_wrapper:
             return True
 
-        keys = self.redis.ask(CollectKeys("metrics", wrapped=False))
+        collect_keys_request = CollectKeys("metrics", wrapped=False)
+        keys = self.storage.ask(collect_keys_request)
         grouped_keys = MetricsMerger.group_metric_keys(keys, self.aggregate_interval)
         if keys:
             logger.info(
@@ -118,7 +118,8 @@ class MetricsAggregator(VitalActor):
             keys: List of metric keys to fetch data from a storage.
         Returns: Whether metrics were processed and cleaned up.
         """
-        b_records = self.redis.ask(CollectValues("metrics", keys, wrapped=False))
+        collect_records_request = CollectValues("metrics", keys, wrapped=False)
+        b_records = self.storage.ask(collect_records_request)
         merged_metrics = MetricsMerger.merge_metrics(b_records, self.aggregate_interval)
         logger.info(
             "[%s] Merged %s raw metrics into %s Merged Metrics.",
@@ -134,11 +135,12 @@ class MetricsAggregator(VitalActor):
             len(wrapped_metrics),
         )
         # Storing processed messages to a "wrapped" queue and cleanup:
-        request = StoreRecords("metrics", wrapped_metrics, wrapped=True)
-        metrics_stored = self.redis.ask(request)
+        store_request = StoreRecords("metrics", wrapped_metrics, wrapped=True)
+        metrics_stored = self.storage.ask(store_request)
         # Cleanup:
         if metrics_stored:
-            cleaned_up = self.redis.ask(DeleteRecords("metrics", keys, wrapped=False))
+            delete_request = DeleteRecords("metrics", keys, wrapped=False)
+            cleaned_up = self.storage.ask(delete_request)
         else:
             logger.warning(
                 "[%s] Could not store %s Wrapped Metrics to a storage. "
