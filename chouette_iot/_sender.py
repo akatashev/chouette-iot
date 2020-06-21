@@ -86,43 +86,40 @@ class Sender(VitalActor):
             records_type: Type of data to process. E.g. logs, metrics.
         Returns: Whether data was dispatched and cleaned successfully.
         """
-        logger.debug("[%s] Cleaning up outdated %s.", self.name, records_type)
         self.storage = StoragesFactory.get_storage(self.storage_type)
-        cleanup_request = CleanupOutdatedRecords(
-            records_type, ttl=self.ttl, wrapped=True
-        )
-        self.storage.ask(cleanup_request)
+        self.cleanup_outdated_records(records_type, self.ttl)
         keys = self.collect_keys(records_type)
         if not keys:
             logger.debug("[%s] Nothing to dispatch.", self.name)
             return True
         records = self.collect_records(keys, records_type)
         dispatched = self.dispatch_to_datadog(records)
-        if dispatched:
-            delete_request = DeleteRecords(records_type, keys, wrapped=True)
-            cleaned_up = self.storage.ask(delete_request)
-            if not cleaned_up:
-                logger.error(
-                    "[%s] %s were dispatched, but not cleaned up!",
-                    self.name,
-                    records_type.capitalize(),
-                )
-        else:
-            logger.warning(
-                "[%s] %s were neither dispatched, nor cleaned.",
+        if not dispatched:
+            return False
+        cleaned_up = self.cleanup_records(keys, records_type)
+        if not cleaned_up:
+            logger.error(
+                "[%s] %s were dispatched, but not cleaned up!",
                 self.name,
                 records_type.capitalize(),
             )
-            cleaned_up = False
-
         return dispatched and cleaned_up
 
-    def add_global_tags(self, b_record: bytes) -> Optional[dict]:
+    def cleanup_outdated_records(self, records_type: str, ttl: int) -> bool:
         """
-        Tags should be added for most of the records, but in a slightly
-        different way, so this method must be implemented individually.
+        Sends a CleanupOutdatedRecords request to a storage.
+
+        Returns nothing, since we can't say whether there were any
+        outdated requests or not.
+
+        Args:
+            records_type: Type of records (logs, metrics, etc).
+            ttl: Maximum records lifetime in seconds.
+        Returns: Whether storage has executed the command successfully.
         """
-        raise NotImplemented("Use concrete Sender implementation.")  # pragma: no cover
+        logger.debug("[%s] Cleaning up outdated %s.", self.name, records_type)
+        cleanup_request = CleanupOutdatedRecords(records_type, ttl=ttl, wrapped=True)
+        return self.storage.ask(cleanup_request)
 
     def collect_keys(self, records_type: str) -> List[bytes]:
         """
@@ -155,6 +152,26 @@ class Sender(VitalActor):
         logger.debug("[%s] Collected %s %s.", self.name, len(b_records), records_type)
         return list(filter(None, map(self.add_global_tags, b_records)))
 
+    def add_global_tags(self, b_record: bytes) -> Optional[dict]:
+        """
+        Tags should be added for most of the records, but in a slightly
+        different way, so this method must be implemented individually.
+        """
+        raise NotImplemented("Use concrete Sender implementation.")  # pragma: no cover
+
+    def cleanup_records(self, keys: List[bytes], records_type: str) -> bool:
+        """
+        Sends a message to storage to clean up successfully dispatched
+        records.
+
+        Args:
+            keys: List of records keys as bytes.
+            records_type: Type of records (logs, metrics, etc).
+        Returns: Whether records were successfully cleaned up.
+        """
+        delete_request = DeleteRecords(records_type, keys, wrapped=True)
+        return self.storage.ask(delete_request)
+
     def dispatch_to_datadog(self, metrics: List[dict]) -> bool:
         """
         Datadog dispatching logic must be implemented individually.
@@ -184,7 +201,7 @@ class Sender(VitalActor):
                 },
                 timeout=self.timeout,
             )
-            if not dd_response.status_code in [200, 202]:
+            if dd_response.status_code not in [200, 202]:
                 logger.error(
                     "[%s] Unexpected response from Datadog: %s: %s",
                     self.name,

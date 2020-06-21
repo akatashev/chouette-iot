@@ -21,6 +21,7 @@ class SingletonActor(ThreadingActor):
     SingletonActor is able to return an ActorRef of a running instance
     of its class or to start a new instance and return its ActorRef.
     """
+
     lock: RLock = RLock()
 
     def __init__(self):
@@ -42,7 +43,7 @@ class SingletonActor(ThreadingActor):
             return cls.start()
 
     def on_failure(
-            self, exception_type: str, exception_value: str, traceback
+        self, exception_type: str, exception_value: str, traceback
     ) -> None:  # pragma: no cover
         """
         Logs an exception if the actor is crashed.
