@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from chouette_iot.metrics._metrics import MergedMetric, RawMetric, WrappedMetric
+from chouette_iot.metrics._metrics import MergedMetric, WrappedMetric
 
 
 def test_merged_metric_successfull_merge():
@@ -73,26 +73,6 @@ def test_merged_metric_str_and_repr():
     assert repr(metric) == f"<MergedMetric: {str(metric_dict)}>"
 
 
-def test_raw_metric_str_and_repr():
-    """
-    RawMetric:
-    __str__, __repr__ and asdict tests.
-    """
-    expected_dict = {
-        "metric": "rawMetric",
-        "type": "count",
-        "value": 1,
-        "timestamp": 2,
-        "tags": {},
-    }
-
-    metric = RawMetric(metric="rawMetric", type="count", value=1, timestamp=2)
-    metric_dict = metric.asdict()
-    assert metric_dict == expected_dict
-    assert str(metric) == str(metric_dict)
-    assert repr(metric) == f"<RawMetric: {str(metric_dict)}>"
-
-
 def test_wrapped_metric_str_and_repr_no_interval():
     """
     WrappedMetric:
@@ -161,5 +141,5 @@ def test_comparing_a_metric_with_not_a_netric(not_a_metric):
     """
     Metric is never equal to a not metric object.
     """
-    metric = RawMetric(metric="wrappedMetric", type="count", value=1)
+    metric = WrappedMetric(metric="wrappedMetric", type="count", value=1)
     assert metric != not_a_metric

@@ -47,7 +47,9 @@ class CollectorPluginActor(SingletonActor):
 
         Returns: Iterator over WrappedMetric objects.
         """
-        raise NotImplemented("Use concrete CollectorPluginActor class.")
+        raise NotImplementedError(
+            "Use concrete CollectorPluginActor class."
+        )  # pragma: no cover
 
 
 class StatsCollector(ABC):

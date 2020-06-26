@@ -1,6 +1,7 @@
 """
 chouette.storages
 """
+# pylint: disable=too-few-public-methods
 from typing import Dict, Type
 
 from pykka import ActorRef  # type: ignore

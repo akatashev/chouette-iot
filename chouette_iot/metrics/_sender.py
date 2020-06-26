@@ -56,7 +56,7 @@ class MetricsSender(Sender):
         """
         return self.process_records("metrics")
 
-    def add_global_tags(self, b_metric: bytes) -> Optional[dict]:
+    def add_global_tags(self, b_record: bytes) -> Optional[dict]:
         """
         Takes a bytes objects that is expected to represent a JSON object,
         casts it to dict and adds global tags to it list of tags.
@@ -64,11 +64,11 @@ class MetricsSender(Sender):
         Also it adds a "host" value if this value is specified.
 
         Args:
-            b_metric: Bytes object representing a metric as a JSON object.
+            b_record: Bytes object representing a metric as a JSON object.
         Returns: Dict representing a metric with updated tags.
         """
         try:
-            d_metric = json.loads(b_metric)
+            d_metric = json.loads(b_record)
         except (TypeError, json.JSONDecodeError):
             return None
         d_metric["tags"] = d_metric.get("tags", []) + self.tags
@@ -76,7 +76,7 @@ class MetricsSender(Sender):
             d_metric["host"] = self.host
         return d_metric
 
-    def dispatch_to_datadog(self, metrics: List[dict]) -> bool:
+    def dispatch_to_datadog(self, records: List[dict]) -> bool:
         """
         Dispatches metrics to Datadog as a "series" POST request.
 
@@ -95,15 +95,15 @@ class MetricsSender(Sender):
         3. How many bytes were sent (if they were sent).
 
         Args:
-            metrics: List of prepared to dispatch metrics.
+            records: List of prepared to dispatch metrics.
         Returns: Whether these metrics were accepted by Datadog.
         """
         # Send a 'chouette.queued.metrics' metric.
         if self.send_self_metrics:
             self.store_queue_size()
-        series = json.dumps({"series": metrics})
+        series = json.dumps({"series": records})
         compressed_message: bytes = zlib.compress(series.encode())
-        metrics_num = len(metrics)
+        metrics_num = len(records)
         message_size = len(compressed_message)
         logger.info(
             "[%s] Dispatching %s metrics. Sending around %s KBs of data.",

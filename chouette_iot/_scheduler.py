@@ -253,5 +253,5 @@ class Scheduler:
             )
             timer.start()
             cancellable.set_timer(timer)
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             logger.error("Stopping periodic job because of exception.", exc_info=True)

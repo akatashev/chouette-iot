@@ -1,13 +1,14 @@
 import json
+import time
 from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 from pykka import ActorRegistry
 
 from chouette_iot.metrics import MetricsAggregator
-from chouette_iot.metrics._metrics import RawMetric
 from chouette_iot.storages import RedisStorage
-from chouette_iot.storages.messages import StoreRecords, CollectKeys, CollectValues
+from chouette_iot.storages.messages import CollectKeys, CollectValues
 
 
 @pytest.fixture
@@ -22,13 +23,32 @@ def aggregator_ref(monkeypatch, redis_client):
 
 
 @pytest.fixture
-def redis_with_raw_metrics(redis_cleanup):
+def redis_with_raw_metrics(redis_cleanup, redis_client):
+    ts = time.time()
     metrics = [
-        RawMetric(metric="metric-test", type="count", value=1, tags={"test": "test"}),
-        RawMetric(metric="metric-test", type="count", value=2, tags={"test": "test"}),
+        {
+            "metric": "metric-test",
+            "type": "count",
+            "timestamp": ts,
+            "value": 1,
+            "tags": {"test": "test"},
+        },
+        {
+            "metric": "metric-test",
+            "type": "count",
+            "timestamp": ts,
+            "value": 2,
+            "tags": {"test": "test"},
+        },
     ]
+    queue_name = f"chouette:metrics:raw"
+    pipeline = redis_client.pipeline()
+    for metric in metrics:
+        key = str(uuid4())
+        pipeline.zadd(f"{queue_name}.keys", {key: ts})
+        pipeline.hset(f"{queue_name}.values", key, json.dumps(metric))
+    pipeline.execute()
     redis = RedisStorage.get_instance()
-    redis.ask(StoreRecords("metrics", metrics, wrapped=False))
     return redis
 
 

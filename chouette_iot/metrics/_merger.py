@@ -1,3 +1,6 @@
+"""
+MetricsMerger object that is used in the MetricsAggregator workflow.
+"""
 import json
 from functools import reduce
 from itertools import groupby
@@ -10,7 +13,7 @@ __all__ = ["MetricsMerger"]
 
 class MetricsMerger:
     """
-    MetricsMerger class is a part of a MergeAggregator workflow.
+    MetricsMerger class is a part of a MetricsAggregator workflow.
 
     It's responsible for separating raw metrics into groups and creating
     MergedMetric objects from raw data.

@@ -53,7 +53,7 @@ class LogsSender(Sender):
         """
         return self.process_records("logs")
 
-    def add_global_tags(self, b_log: bytes) -> Optional[dict]:
+    def add_global_tags(self, b_record: bytes) -> Optional[dict]:
         """
         Takes a bytes objects that is expected to represent a JSON object,
         casts it to dict and adds global tags to it list of tags.
@@ -61,11 +61,11 @@ class LogsSender(Sender):
         Also it adds a "host" value if this value is specified.
 
         Args:
-            b_log: Bytes object representing a log as a JSON object.
+            b_record: Bytes object representing a log as a JSON object.
         Returns: Dict representing a log with updated tags.
         """
         try:
-            d_log = json.loads(b_log)
+            d_log = json.loads(b_record)
         except (TypeError, json.JSONDecodeError):
             return None
         tags = d_log.get("ddtags", []) + self.tags
@@ -74,7 +74,7 @@ class LogsSender(Sender):
             d_log["host"] = self.host
         return d_log
 
-    def dispatch_to_datadog(self, logs: List[dict]) -> bool:
+    def dispatch_to_datadog(self, records: List[dict]) -> bool:
         """
         Dispatches logs to Datadog:
 
@@ -90,11 +90,11 @@ class LogsSender(Sender):
         3. How many bytes were sent (if they were sent).
 
         Args:
-            logs: List of prepared to dispatch logs.
+            records: List of prepared to dispatch logs.
         Returns: Whether these logs were accepted by Datadog.
         """
-        compressed_message: bytes = zlib.compress(json.dumps(logs).encode())
-        logs_num = len(logs)
+        compressed_message: bytes = zlib.compress(json.dumps(records).encode())
+        logs_num = len(records)
         message_size = len(compressed_message)
         logger.info(
             "[%s] Dispatching %s logss. Sending around %s KBs of data.",

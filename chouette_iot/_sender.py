@@ -66,7 +66,9 @@ class Sender(VitalActor):
         Message handler. It's mainly the same, but should be implemented
         individually.
         """
-        raise NotImplemented("Use concrete Sender implementation.")  # pragma: no cover
+        raise NotImplementedError(
+            "Use concrete Sender implementation."
+        )  # pragma: no cover
 
     def process_records(self, records_type: str) -> bool:
         """
@@ -157,7 +159,9 @@ class Sender(VitalActor):
         Tags should be added for most of the records, but in a slightly
         different way, so this method must be implemented individually.
         """
-        raise NotImplemented("Use concrete Sender implementation.")  # pragma: no cover
+        raise NotImplementedError(
+            "Use concrete Sender implementation."
+        )  # pragma: no cover
 
     def cleanup_records(self, keys: List[bytes], records_type: str) -> bool:
         """
@@ -172,11 +176,13 @@ class Sender(VitalActor):
         delete_request = DeleteRecords(records_type, keys, wrapped=True)
         return self.storage.ask(delete_request)
 
-    def dispatch_to_datadog(self, metrics: List[dict]) -> bool:
+    def dispatch_to_datadog(self, records: List[dict]) -> bool:
         """
         Datadog dispatching logic must be implemented individually.
         """
-        raise NotImplemented("Use concrete Sender implementation.")  # pragma: no cover
+        raise NotImplementedError(
+            "Use concrete Sender implementation."
+        )  # pragma: no cover
 
     def _post_to_datadog(self, message: bytes, dd_endpoint: str) -> bool:
         """

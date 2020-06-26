@@ -1,3 +1,6 @@
+"""
+MetricsAggregator actor
+"""
 import logging
 from typing import Any, List, Tuple
 
@@ -106,7 +109,7 @@ class MetricsAggregator(VitalActor):
     def _cleanup_outdated_raw_metrics(self, ttl: int) -> bool:
         """
         Cleans up outdated metrics from the 'raw' metrics queue.
-        
+
         Args:
             ttl: TTL of a metrics.
         Returns: Whether cleanup command was executed correctly.
@@ -118,7 +121,7 @@ class MetricsAggregator(VitalActor):
         """
         Collects all the metric keys from the 'raw' metrics queue with
         their timestamps.
-        
+
         Returns: List of tuples (key, metric timestamp).
         """
         collect_keys_request = CollectKeys("metrics", wrapped=False)

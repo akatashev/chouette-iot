@@ -1,6 +1,7 @@
 """
 chouette.ChouetteConfig
 """
+# pylint: disable=too-few-public-methods
 from typing import List
 
 from pydantic import BaseSettings  # type: ignore
