@@ -11,12 +11,9 @@ from typing import Iterator, List
 
 import requests_unixsocket  # type: ignore
 from pydantic import BaseSettings  # type: ignore
-from pykka import ActorDeadError  # type: ignore
 from requests import RequestException
 
-from chouette_iot._singleton_actor import SingletonActor
-from ._collector_plugin import CollectorPlugin
-from .messages import StatsRequest, StatsResponse
+from ._collector_plugin import CollectorPluginActor, StatsCollector
 from .._metrics import WrappedMetric
 
 __all__ = ["DockerCollector"]
@@ -33,7 +30,7 @@ class DockerCollectorConfig(BaseSettings):
     docker_socket_path = "/var/run/docker.sock"
 
 
-class DockerCollector(SingletonActor):
+class DockerCollectorPlugin(CollectorPluginActor):
     """
     Docker collector plugin:
     Collects data about docker containers directly from a docker unix socket.
@@ -56,31 +53,18 @@ class DockerCollector(SingletonActor):
         encoded_socket_path = urllib.parse.quote(socket_path, safe="")
         self.docker_url = f"http+unix://{encoded_socket_path}/containers"
 
-    def on_receive(self, message: StatsRequest) -> None:
+    def collect_stats(self) -> Iterator[WrappedMetric]:
         """
-        On StatsRequest message collects Docker statistics and
-        sends them back in a StatsResponse message.
+        Collects Docker statistics from DockerCollector.
 
-        On any other message does nothing.
-
-        Args:
-            message: Expected to be a StatsRequest message.
+        Returns: Iterator over WrappedMetric objects.
         """
-        logger.debug("[%s] Received %s.", self.name, message)
-        if isinstance(message, StatsRequest):
-            stats = DockerCollectorPlugin.collect_metrics(self.docker_url)
-            if hasattr(message.sender, "tell"):
-                try:
-                    message.sender.tell(StatsResponse(self.name, stats))
-                except ActorDeadError:
-                    logger.warning(
-                        "[%s] Requester is stopped. Dropping message.", self.name
-                    )
+        return DockerCollector.collect_metrics(self.docker_url)
 
 
-class DockerCollectorPlugin(CollectorPlugin):
+class DockerCollector(StatsCollector):
     """
-    Companion object for DockerCollector Actor to abstract data collection
+    Companion object for DockerCollectorPlugin Actor to abstract data collection
     methods into a separated object not handled by Pykka.
     """
 

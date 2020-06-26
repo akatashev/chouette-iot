@@ -1,7 +1,7 @@
 from pykka import ActorRef
 
-from chouette_iot.metrics.plugins import HostStatsCollector
 from chouette_iot.metrics.plugins import PluginsFactory
+from chouette_iot.metrics.plugins._host_collector import HostCollectorPlugin
 
 
 def test_plugins_factory_returns_actor_ref(post_test_actors_stop):
@@ -10,11 +10,11 @@ def test_plugins_factory_returns_actor_ref(post_test_actors_stop):
 
     GIVEN: 'host' plugin name is associated with HostStatsCollector.
     WHEN: Someone requests a plugin 'host' via a .get_plugin method.
-    THEN: HostStatsCollector ActorRef is returned.
+    THEN: HostCollectorPlugin ActorRef is returned.
     """
     response = PluginsFactory.get_plugin("host")
     assert isinstance(response, ActorRef)
-    assert isinstance(response.actor_class, HostStatsCollector.__class__)
+    assert isinstance(response.actor_class, HostCollectorPlugin.__class__)
 
 
 def test_plugins_factory_returns_none(post_test_actors_stop):

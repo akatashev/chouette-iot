@@ -9,14 +9,11 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import requests
 from pydantic import BaseSettings, ValidationError  # type: ignore
-from pykka import ActorDeadError  # type: ignore
 
-from chouette_iot._singleton_actor import SingletonActor
-from ._collector_plugin import CollectorPlugin
-from .messages import StatsRequest, StatsResponse
+from ._collector_plugin import CollectorPluginActor, StatsCollector
 from .._metrics import WrappedMetric
 
-__all__ = ["K8sCollector"]
+__all__ = ["K8sCollectorPlugin"]
 
 logger = logging.getLogger("chouette-iot")
 
@@ -53,7 +50,7 @@ class K8sCollectorConfig(BaseSettings):
     k8s_metrics: Dict[str, List[str]] = {"pods": ["memory", "cpu"], "node": ["inodes"]}
 
 
-class K8sCollector(SingletonActor):
+class K8sCollectorPlugin(CollectorPluginActor):
     """
     K8sCollector plugin collects stats about K8s node and pods via a K8s
     Stats Service.
@@ -74,33 +71,18 @@ class K8sCollector(SingletonActor):
                 exc_info=True,
             )
 
-    def on_receive(self, message: StatsRequest) -> None:
+    def collect_stats(self) -> Iterator[WrappedMetric]:
         """
-        On StatsRequest message collects K8s pods stats and
-        sends them back in a StatsResponse message.
+        Collects K8s statistics from K8sCollector.
 
-        On any other message does nothing.
-
-        Args:
-            message: Expected to be a StatsRequest message.
+        Returns: Iterator over WrappedMetric objects.
         """
-        logger.debug("[%s] Received %s.", self.name, message)
-        if isinstance(message, StatsRequest) and self.k8s_url:
-            stats = K8sCollectorPlugin.collect_stats(
-                self.k8s_url, self.certs, self.k8s_metrics
-            )
-            if hasattr(message.sender, "tell"):
-                try:
-                    message.sender.tell(StatsResponse(self.name, stats))
-                except ActorDeadError:
-                    logger.warning(
-                        "[%s] Requester is stopped. Dropping message.", self.name
-                    )
+        return K8sCollector.collect_stats(self.k8s_url, self.certs, self.k8s_metrics)
 
 
-class K8sCollectorPlugin(CollectorPlugin):
+class K8sCollector(StatsCollector):
     """
-    K8sCollectorPlugin handles collecting data from K8s and wrapping it
+    StatsCollector that handles collecting data from K8s and wrapping it
     into iterator of WrappedMetrics.
     """
 

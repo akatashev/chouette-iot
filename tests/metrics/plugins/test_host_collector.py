@@ -1,5 +1,5 @@
 """
-HostStatsCollector plugin tests.
+HostCollectorPlugin tests.
 
 NB: `ask` is used here due to its blocking nature because for testing we need
 to be sure, that processing finished when we check the results.
@@ -13,41 +13,41 @@ import psutil
 import pytest
 
 from chouette_iot.metrics._metrics import WrappedMetric
-from chouette_iot.metrics.plugins import HostStatsCollector
+from chouette_iot.metrics.plugins._host_collector import HostCollectorPlugin
 from chouette_iot.metrics.plugins.messages import StatsRequest, StatsResponse
 
 
 @pytest.fixture
 def collector_ref(monkeypatch):
     """
-    HostStatsCollector ActorRef fixture.
+    HostCollectorPlugin ActorRef fixture.
     """
     monkeypatch.setenv(
         "HOST_COLLECTOR_METRICS", '["cpu", "la", "ram", "network", "fs"]'
     )
-    ref = HostStatsCollector.get_instance()
+    ref = HostCollectorPlugin.get_instance()
     ref.stop()
-    ref = HostStatsCollector.get_instance()
+    ref = HostCollectorPlugin.get_instance()
     yield ref
     ref.stop()
 
 
 def test_host_collector_returns_stats_response(test_actor, collector_ref):
     """
-    HostStatsCollector sends an iterator over WrappedMetrics to a
+    HostCollectorPlugin sends an iterator over WrappedMetrics to a
     StatsRequest sender.
 
-    GIVEN: I have a working HostStatsCollector actor.
+    GIVEN: I have a working HostCollectorPlugin actor.
     WHEN: Some actor sends a StatsRequest message with correct sender.
     THEN: After a short period of time it receives a response.
     AND: This response type is StatsResponse.
-    AND: Its 'producer' property is HostStatsCollector.
+    AND: Its 'producer' property is HostCollectorPlugin.
     AND: Its `stats` property is an iterator over WrappedMetrics.
     """
     collector_ref.ask(StatsRequest(test_actor))
     response = test_actor.ask("messages").pop()
     assert isinstance(response, StatsResponse)
-    assert response.producer == "HostStatsCollector"
+    assert response.producer == "HostCollectorPlugin"
     stats = list(response.stats)
     assert all(isinstance(elem, WrappedMetric) for elem in stats)
 
@@ -60,7 +60,7 @@ def test_host_collector_ignores_cpu_percentage_zero(
     cpu_perc, test_actor, collector_ref, cpu_perc_value, metric_must_exist
 ):
     """
-    HostStatsCollector doesn't send CPU percentage metric with value 0.0.
+    HostCollectorPlugin doesn't send CPU percentage metric with value 0.0.
 
     GIVEN: psutil method cpu_percent was never run before and returns 0.0.
     WHEN: Some actor sends a StatsRequest message with correct sender.
@@ -78,11 +78,11 @@ def test_host_collector_ignores_cpu_percentage_zero(
 
 def test_host_collector_does_not_crash_on_stopped_sender(test_actor, collector_ref):
     """
-    HostStatsCollector doesn't crash on stopped sender
+    HostCollectorPlugin doesn't crash on stopped sender
 
-    GIVEN: I have a working HostStatsCollector actor.
+    GIVEN: I have a working HostCollectorPlugin actor.
     WHEN: Some actor sends a StatsRequest and stops before it gets a response.
-    THEN: HostStatsCollector doesn't crash.
+    THEN: HostCollectorPlugin doesn't crash.
     """
     test_actor.stop()
     collector_ref.ask(StatsRequest(test_actor))
@@ -91,11 +91,11 @@ def test_host_collector_does_not_crash_on_stopped_sender(test_actor, collector_r
 
 def test_host_collector_does_not_crash_on_wrong_sender(collector_ref):
     """
-    HostStatsCollector doesn't crash on wrong sender.
+    HostCollectorPlugin doesn't crash on wrong sender.
 
-    GIVEN: I have a working HostStatsCollector actor.
+    GIVEN: I have a working HostCollectorPlugin actor.
     WHEN: Some actor sends a StatsRequest with some gibberish as a sender.
-    THEN: HostStatsCollector doesn't crash.
+    THEN: HostCollectorPlugin doesn't crash.
     """
     collector_ref.ask(StatsRequest("not an actor"))
     assert collector_ref.is_alive()
@@ -109,12 +109,12 @@ def test_host_collector_can_collect_subset_of_metrics(
     It's possible to specify what subset of metrics you want to collect.
 
     GIVEN: HOST_COLLECTOR_METRICS specify only cpu metrics.
-    WHEN: HostStatsCollector receives a StatRequest.
+    WHEN: HostCollectorPlugin receives a StatRequest.
     THEN: It collects and sends back only cpu metrics.
     """
     cpu_perc.return_value = 10.0
     monkeypatch.setenv("HOST_COLLECTOR_METRICS", '["cpu"]')
-    collector_ref = HostStatsCollector.start()
+    collector_ref = HostCollectorPlugin.start()
     collector_ref.ask(StatsRequest(test_actor))
     response = test_actor.ask("messages").pop()
     stats = list(response.stats)
@@ -126,10 +126,10 @@ def test_host_collector_can_collect_subset_of_metrics(
 
 def test_host_collector_collects_ram_metrics(test_actor, collector_ref):
     """
-    HostStatsCollector returns RAM metrics.
+    HostCollectorPlugin returns RAM metrics.
 
     GIVEN: 'ram' is specified in host_collector_metrics configuration.
-    WHEN: HostStatsCollector receives a StatRequest.
+    WHEN: HostCollectorPlugin receives a StatRequest.
     THEN: It collects and sends 2 `Chouette.host.memory` metrics along with
           other metrics (used and available memory).
     """
@@ -142,11 +142,11 @@ def test_host_collector_collects_ram_metrics(test_actor, collector_ref):
 
 def test_host_collector_collects_network_metrics(test_actor, collector_ref):
     """
-    HostStatsCollector returns network metrics.
+    HostCollectorPlugin returns network metrics.
 
     GIVEN: 'network' is specified in host_collector_metrics configuration.
     AND: We have a single network interface.
-    WHEN: HostStatsCollector receives a StatRequest.
+    WHEN: HostCollectorPlugin receives a StatRequest.
     THEN: It collects and sends 2 `Chouette.host.network` metrics along with
           other metrics (bytes.sent and bytes.recv).
     """
@@ -159,11 +159,11 @@ def test_host_collector_collects_network_metrics(test_actor, collector_ref):
 
 def test_host_collector_collects_fs_metrics(test_actor, collector_ref):
     """
-    HostStatsCollector returns fs metrics.
+    HostCollectorPlugin returns fs metrics.
 
     GIVEN: 'fs' is specified in host_collector_metrics configuration.
     AND: We have a single device (even if it's mounted to numerous points).
-    WHEN: HostStatsCollector receives a StatRequest.
+    WHEN: HostCollectorPlugin receives a StatRequest.
     THEN: It collects and sends 2 "Chouette.host.fs" metrics along with other
           metrics (used and free space on device).
     """

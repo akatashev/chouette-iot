@@ -6,20 +6,15 @@ from typing import Dict, Optional, Type
 
 from pykka import ActorRef  # type: ignore
 
-from chouette_iot._singleton_actor import SingletonActor
-from ._docker_collector import DockerCollector
-from ._dramatiq_collector import DramatiqCollector
-from ._host_collector import HostStatsCollector
-from ._k8s_collector import K8sCollector
-from ._tegrastats_collector import TegrastatsCollector
+from ._collector_plugin import CollectorPluginActor
+from ._docker_collector import DockerCollectorPlugin
+from ._dramatiq_collector import DramatiqCollectorPlugin
+from ._host_collector import HostCollectorPlugin
+from ._k8s_collector import K8sCollectorPlugin
+from ._tegrastats_collector import TegrastatsCollectorPlugin
 
 __all__ = [
-    "DockerCollector",
-    "DramatiqCollector",
-    "HostStatsCollector",
-    "K8sCollector",
     "PluginsFactory",
-    "TegrastatsCollector",
 ]
 
 
@@ -28,12 +23,12 @@ class PluginsFactory:
     PluginsFactory class creates plugins actors and returns their ActorRefs.
     """
 
-    plugins: Dict[str, Type[SingletonActor]] = {
-        "dramatiq": DramatiqCollector,
-        "host": HostStatsCollector,
-        "k8s": K8sCollector,
-        "tegrastats": TegrastatsCollector,
-        "docker": DockerCollector,
+    plugins: Dict[str, Type[CollectorPluginActor]] = {
+        "dramatiq": DramatiqCollectorPlugin,
+        "host": HostCollectorPlugin,
+        "k8s": K8sCollectorPlugin,
+        "tegrastats": TegrastatsCollectorPlugin,
+        "docker": DockerCollectorPlugin,
     }
 
     @classmethod

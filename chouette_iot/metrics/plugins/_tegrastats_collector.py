@@ -11,13 +11,11 @@ from subprocess import Popen, PIPE
 from typing import Iterator, List
 
 from pydantic import BaseSettings  # type: ignore
-from pykka import ActorDeadError  # type: ignore
 
-from chouette_iot._singleton_actor import SingletonActor
-from ._collector_plugin import CollectorPlugin
-from .messages import StatsRequest, StatsResponse
+from ._collector_plugin import CollectorPluginActor, StatsCollector
+from .._metrics import WrappedMetric
 
-__all__ = ["TegrastatsCollector"]
+__all__ = ["TegrastatsCollectorPlugin"]
 
 logger = logging.getLogger("chouette-iot")
 
@@ -36,7 +34,7 @@ class TegrastatsConfig(BaseSettings):
     tegrastats_path: str = "/usr/bin/tegrastats"
 
 
-class TegrastatsCollector(SingletonActor):
+class TegrastatsCollectorPlugin(CollectorPluginActor):
     """
     Actor that collects stats from an Nvidia Tegrastats utility.
 
@@ -51,31 +49,18 @@ class TegrastatsCollector(SingletonActor):
         self.metrics = config.tegrastats_metrics
         self.path = config.tegrastats_path
 
-    def on_receive(self, message):
+    def collect_stats(self) -> Iterator[WrappedMetric]:
         """
-        On StatsRequest message collects specified metrics and
-        sends them back in a StatsResponse message.
+        Collects Tegrastats statistics from TegrastatsCollector.
 
-        On any other message does nothing.
-
-        Args:
-            message: Expected to be a StatsRequest message.
+        Returns: Iterator over WrappedMetric objects.
         """
-        logger.debug("[%s] Received %s.", self.name, message)
-        if isinstance(message, StatsRequest):
-            stats = TegrastatsPlugin.collect_stats(self.path, self.metrics)
-            if hasattr(message.sender, "tell"):
-                try:
-                    message.sender.tell(StatsResponse(self.name, stats))
-                except ActorDeadError:
-                    logger.warning(
-                        "[%s] Requester is stopped. Dropping message.", self.name
-                    )
+        return TegrastatsCollector.collect_stats(self.path, self.metrics)
 
 
-class TegrastatsPlugin(CollectorPlugin):
+class TegrastatsCollector(StatsCollector):
     """
-    CollectorPlugin that handles RAM and Temperature metrics from Tegrastats.
+    StatsCollector that handles RAM and Temperature metrics from Tegrastats.
 
     Built around Tegrastats application that is a part of L4T Nvidia project:
     https://docs.nvidia.com/jetson/l4t/index.html

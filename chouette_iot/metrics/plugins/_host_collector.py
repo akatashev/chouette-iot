@@ -9,14 +9,11 @@ from typing import Iterator, List
 
 import psutil  # type: ignore
 from pydantic import BaseSettings  # type: ignore
-from pykka import ActorDeadError  # type: ignore
 
-from chouette_iot._singleton_actor import SingletonActor
-from ._collector_plugin import CollectorPlugin
-from .messages import StatsRequest, StatsResponse
+from ._collector_plugin import CollectorPluginActor, StatsCollector
 from .._metrics import WrappedMetric
 
-__all__ = ["HostStatsCollector"]
+__all__ = ["HostCollectorPlugin"]
 
 logger = logging.getLogger("chouette-iot")
 
@@ -34,7 +31,7 @@ class HostCollectorConfig(BaseSettings):
     host_collector_metrics: List[str] = ["cpu", "fs", "la", "ram"]
 
 
-class HostStatsCollector(SingletonActor):
+class HostCollectorPlugin(CollectorPluginActor):
     """
     Actor that collects host stats like RAM, CPU and HDD usage.
 
@@ -46,11 +43,11 @@ class HostStatsCollector(SingletonActor):
         super().__init__()
 
         host_methods = {
-            "cpu": HostCollectorPlugin.get_cpu_percentage,
-            "fs": HostCollectorPlugin.get_fs_metrics,
-            "la": HostCollectorPlugin.get_la_metrics,
-            "ram": HostCollectorPlugin.get_ram_metrics,
-            "network": HostCollectorPlugin.get_network_metrics,
+            "cpu": HostCollector.get_cpu_percentage,
+            "fs": HostCollector.get_fs_metrics,
+            "la": HostCollector.get_la_metrics,
+            "ram": HostCollector.get_ram_metrics,
+            "network": HostCollector.get_network_metrics,
         }
 
         metrics_to_send = HostCollectorConfig().host_collector_metrics
@@ -59,32 +56,19 @@ class HostStatsCollector(SingletonActor):
         ]
         self.methods = [method for method in collection_methods if method]
 
-    def on_receive(self, message: StatsRequest) -> None:
+    def collect_stats(self) -> Iterator[WrappedMetric]:
         """
-        On StatsRequest message collects specified metrics and
-        sends them back in a StatsResponse message.
+        Collects Host statistics from HostCollector.
 
-        On any other message does nothing.
-
-        Args:
-            message: Expected to be a StatsRequest message.
+        Returns: Iterator over WrappedMetric objects.
         """
-        logger.debug("[%s] Received %s.", self.name, message)
-        if isinstance(message, StatsRequest):
-            metrics = map(lambda func: func(), self.methods)
-            stats = chain.from_iterable(metrics)
-            if hasattr(message.sender, "tell"):
-                try:
-                    message.sender.tell(StatsResponse(self.name, stats))
-                except ActorDeadError:
-                    logger.warning(
-                        "[%s] Requester is stopped. Dropping message.", self.name
-                    )
+        metrics = map(lambda func: func(), self.methods)
+        return chain.from_iterable(metrics)
 
 
-class HostCollectorPlugin(CollectorPlugin):
+class HostCollector(StatsCollector):
     """
-    CollectorPlugin that handles CPU, RAM and HDD metrics.
+    StatsCollector that handles CPU, RAM and HDD metrics.
 
     Built around psutil package: https://psutil.readthedocs.io/en/latest/
     """

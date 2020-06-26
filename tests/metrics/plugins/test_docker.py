@@ -1,7 +1,7 @@
 import pytest
 
-from chouette_iot.metrics.plugins import DockerCollector
 from chouette_iot.metrics.plugins._docker_collector import (
+    DockerCollector,
     DockerCollectorPlugin,
     WrappedMetric,
 )
@@ -11,27 +11,27 @@ from chouette_iot.metrics.plugins.messages import StatsRequest, StatsResponse
 @pytest.fixture
 def docker_ref():
     """
-    DockerCollector actor's ActorRef fixture.
+    DockerCollectorPlugin actor's ActorRef fixture.
     """
-    ref = DockerCollector.get_instance()
+    ref = DockerCollectorPlugin.get_instance()
     yield ref
     ref.stop()
 
 
 def test_docker_plugin_handles_stats_request(mocked_http, docker_ref, test_actor):
     """
-    DockerCollector is able to handle StatsResponse requests:
+    DockerCollectorPlugin is able to handle StatsResponse requests:
 
     GIVEN: K8s stats server is up and running.
     AND: Our cert and key are correct.
-    WHEN: DockerCollector receives an StatsRequest message.
+    WHEN: DockerCollectorPlugin receives an StatsRequest message.
     THEN: It sends back a StatsResponse message.
     AND: This response contains WrappedMetric objects.
     """
     docker_ref.ask(StatsRequest(test_actor))
     response = test_actor.ask("messages").pop()
     assert isinstance(response, StatsResponse)
-    assert response.producer == "DockerCollector"
+    assert response.producer == "DockerCollectorPlugin"
     stats = response.stats
     assert stats
     assert all(isinstance(elem, WrappedMetric) for elem in stats)
@@ -39,9 +39,9 @@ def test_docker_plugin_handles_stats_request(mocked_http, docker_ref, test_actor
 
 def test_docker_plugin_does_not_crash_on_stopped_sender(test_actor, docker_ref):
     """
-    DockerCollector doesn't crash on stopped sender
+    DockerCollectorPlugin doesn't crash on stopped sender
 
-    GIVEN: I have a working DockerCollector actor.
+    GIVEN: I have a working DockerCollectorPlugin actor.
     WHEN: Some actor sends a StatsRequest and stops before it gets a response.
     THEN: HostStatsCollector doesn't crash.
     """
@@ -52,9 +52,9 @@ def test_docker_plugin_does_not_crash_on_stopped_sender(test_actor, docker_ref):
 
 def test_docker_plugin_does_not_crash_on_wrong_sender(docker_ref):
     """
-    DockerCollector doesn't crash on wrong sender.
+    DockerCollectorPlugin doesn't crash on wrong sender.
 
-    GIVEN: I have a working DockerCollector actor.
+    GIVEN: I have a working DockerCollectorPlugin actor.
     WHEN: Some actor sends a StatsRequest with some gibberish as a sender.
     THEN: HostStatsCollector doesn't crash.
     """
@@ -64,14 +64,14 @@ def test_docker_plugin_does_not_crash_on_wrong_sender(docker_ref):
 
 def test_docker_plugin_gets_stats(mocked_http):
     """
-    DockerCollectorPlugin returns stats on `collect_metrics` request.
+    DockerCollector returns stats on `collect_metrics` request.
 
     GIVEN: Docker is running and its socket is reachable.
     ANS: 1 container is running.
     WHEN: `collect_metrics` method is called.
     THEN: It returns a list of 2 metrics for this container.
     """
-    result = DockerCollectorPlugin.collect_metrics(
+    result = DockerCollector.collect_metrics(
         "http+unix://%2Fvar%2Frun%2Fdocker.sock/containers"
     )
     result_list = list(result)
@@ -80,14 +80,14 @@ def test_docker_plugin_gets_stats(mocked_http):
 
 def test_docker_plugin_gets_containers_ids(mocked_http):
     """
-    DockerCollectorPlugin gets containers ID.
+    DockerCollector gets containers ID.
 
     GIVEN: Docker is running and its socket is reachable.
     AND: 1 container is running.
     WHEN: `_get_containers_ids` method is called.
     THEN: It returns a list with 1 id.
     """
-    result = DockerCollectorPlugin._get_containers_ids(
+    result = DockerCollector._get_containers_ids(
         "http+unix://%2Fvar%2Frun%2Fdocker.sock/containers"
     )
     assert result == ["123a"]
@@ -96,14 +96,14 @@ def test_docker_plugin_gets_containers_ids(mocked_http):
 @pytest.mark.parametrize("endpoint", ["not-json", "conn-exc"])
 def test_docker_plugin_gets_containers_ids_empty(endpoint, mocked_http):
     """
-    DockerCollectorPlugin returns an empty list of ids on a problem.
+    DockerCollector returns an empty list of ids on a problem.
 
     GIVEN: Docker is not running.
     OR: It's running but doesn't return a valid json on 'containers/json'.
     WHEN: `_get_containers_ids` method is called.
     THEN: It returns an empty list.
     """
-    result = DockerCollectorPlugin._get_containers_ids(
+    result = DockerCollector._get_containers_ids(
         f"http+unix://%2Fvar%2Frun%2Fdocker.sock/{endpoint}"
     )
     assert not result
@@ -111,7 +111,7 @@ def test_docker_plugin_gets_containers_ids_empty(endpoint, mocked_http):
 
 def test_docker_plugin_gets_container_stats(mocked_http):
     """
-    DockerCollectorPlugin returns a list of container stats.
+    DockerCollector returns a list of container stats.
 
     GIVEN: Docker is running and its socket is reachable.
     AND: Containers are running.
@@ -123,7 +123,7 @@ def test_docker_plugin_gets_container_stats(mocked_http):
     AND: Their tags are ['container:<container_name'].
     AND: Their values represent data returned by Docker.
     """
-    result = DockerCollectorPlugin._get_container_stats(
+    result = DockerCollector._get_container_stats(
         "123a", "http+unix://%2Fvar%2Frun%2Fdocker.sock/containers"
     )
     result_list = list(result)
@@ -143,14 +143,14 @@ def test_docker_plugin_gets_container_stats(mocked_http):
 
 def test_docker_plugin_gets_container_stats_empty(mocked_http):
     """
-    DockerCollectorPlugin returns an empty list of stats on a problem.
+    DockerCollector returns an empty list of stats on a problem.
 
     GIVEN: Docker is not running.
     OR: It's running but doesn't return a valid json on container/id/stats.
     WHEN: `_get_container_stats` method is called.
     THEN: It returns an iterator of an empty list.
     """
-    result = DockerCollectorPlugin._get_container_stats(
+    result = DockerCollector._get_container_stats(
         "456b", "http+unix://%2Fvar%2Frun%2Fdocker.sock/containers"
     )
     assert not list(result)

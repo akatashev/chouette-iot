@@ -7,21 +7,17 @@ import re
 from itertools import chain
 from typing import Iterator, List, Tuple
 
-from pykka import ActorDeadError  # type: ignore
-
-from chouette_iot._singleton_actor import SingletonActor
 from chouette_iot.storages import StoragesFactory
 from chouette_iot.storages._redis_messages import GetHashSizes, GetRedisQueues
-from ._collector_plugin import CollectorPlugin
-from .messages import StatsRequest, StatsResponse
+from ._collector_plugin import CollectorPluginActor, StatsCollector
 from .._metrics import WrappedMetric
 
-__all__ = ["DramatiqCollector"]
+__all__ = ["DramatiqCollectorPlugin"]
 
 logger = logging.getLogger("chouette-iot")
 
 
-class DramatiqCollector(SingletonActor):
+class DramatiqCollectorPlugin(CollectorPluginActor):
     """
     Actor that collects Dramatiq queues sizes.
 
@@ -37,33 +33,20 @@ class DramatiqCollector(SingletonActor):
         super().__init__()
         self.redis = StoragesFactory.get_storage("redis")
 
-    def on_receive(self, message: StatsRequest) -> None:
+    def collect_stats(self) -> Iterator[WrappedMetric]:
         """
-        On StatsRequest message collects Dramatiq queues sizes and
-        sends them back in a StatsResponse message.
+        Collects Dramatiq statistics from DramatiqCollector.
 
-        On any other message does nothing.
-
-        Args:
-            message: Expected to be a StatsRequest message.
+        Returns: Iterator over WrappedMetric objects.
         """
-        logger.debug("[%s] Received %s.", self.name, message)
-        if isinstance(message, StatsRequest):
-            hashes = self.redis.ask(GetRedisQueues("dramatiq:*.msgs"))
-            sizes = self.redis.ask(GetHashSizes(hashes))
-            stats = DramatiqCollectorPlugin.wrap_queues_sizes(sizes)
-            if hasattr(message.sender, "tell"):
-                try:
-                    message.sender.tell(StatsResponse(self.name, stats))
-                except ActorDeadError:
-                    logger.warning(
-                        "[%s] Requester is stopped. Dropping message.", self.name
-                    )
+        hashes = self.redis.ask(GetRedisQueues("dramatiq:*.msgs"))
+        sizes = self.redis.ask(GetHashSizes(hashes))
+        return DramatiqCollector.wrap_queues_sizes(sizes)
 
 
-class DramatiqCollectorPlugin(CollectorPlugin):
+class DramatiqCollector(StatsCollector):
     """
-    DramatiqPlugin that wraps received hashes sizes into WrappedMetrics.
+    StatsCollector that wraps received hashes sizes into WrappedMetrics.
     """
 
     @classmethod

@@ -1,18 +1,58 @@
 """
-CollectorPlugin: Abstract class for all metric collectors.
+CollectorPlugin: Abstract classes for all metric collectors.
 """
+import logging
+
 # pylint: disable=too-few-public-methods
 from abc import ABC
-from typing import Generator, List, Optional, Tuple
+from typing import Generator, Iterator, List, Optional, Tuple
 
+from pykka import ActorDeadError  # type: ignore
+
+from chouette_iot._singleton_actor import SingletonActor
+from .messages import StatsRequest, StatsResponse
 from .._metrics import WrappedMetric
 
-__all__ = ["CollectorPlugin"]
+__all__ = ["CollectorPluginActor", "StatsCollector"]
+
+logger = logging.getLogger("chouette-iot")
 
 
-class CollectorPlugin(ABC):
+class CollectorPluginActor(SingletonActor):
     """
-    Abstract class for all metric collectors.
+    Base abstract class for all Collector Plugin Actors.
+    """
+
+    def on_receive(self, message: StatsRequest) -> None:
+        """
+        Template Method fot Collector Plugin Actors message handling.
+
+        Args:
+            message: Expected to be a StatsRequest message.
+        """
+        logger.debug("[%s] Received %s.", self.name, message)
+        if isinstance(message, StatsRequest):
+            stats = self.collect_stats()
+            if hasattr(message.sender, "tell"):
+                try:
+                    message.sender.tell(StatsResponse(self.name, stats))
+                except ActorDeadError:
+                    logger.warning(
+                        "[%s] Requester is stopped. Dropping message.", self.name
+                    )
+
+    def collect_stats(self) -> Iterator[WrappedMetric]:
+        """
+        Abstract method for stats collection.
+
+        Returns: Iterator over WrappedMetric objects.
+        """
+        raise NotImplemented("Use concrete CollectorPluginActor class.")
+
+
+class StatsCollector(ABC):
+    """
+    Abstract class for all stats metric collectors.
     """
 
     @staticmethod
