@@ -52,19 +52,21 @@ def test_group_metric_keys(metrics_keys):
 @pytest.mark.parametrize(
     "storage_record, expected_result",
     [
-        (b"Not a JSON parseable metric at all.", None),
-        (b'{"msg": "That is not a proper metric."}', None),
+        (b"Not a JSON parseable metric at all.", []),
+        (b'{"msg": "That is not a proper metric."}', []),
         (
             b'{"metric": "name", "type": "count", "value": 1, "timestamp": 1}',
-            MergedMetric(
-                metric="name", type="count", values=[1], timestamps=[1], interval=10
-            ),
+            [
+                MergedMetric(
+                    metric="name", type="count", values=[1], timestamps=[1], interval=10
+                )
+            ],
         ),
     ],
 )
 def test_cast_to_metric(storage_record, expected_result):
-    result = MetricsMerger._cast_to_metric(storage_record, 10)
-    assert result == expected_result
+    result = MetricsMerger._cast_to_merged_metrics([storage_record], 10)
+    assert list(result) == expected_result
 
 
 def test_merge_metrics(metrics_values):

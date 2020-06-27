@@ -4,7 +4,7 @@ MetricsSender actor.
 import json
 import logging
 import zlib
-from typing import Any, List, Optional
+from typing import Any, List, Iterable
 
 from chouette_iot_client import ChouetteClient  # type: ignore
 
@@ -56,7 +56,7 @@ class MetricsSender(Sender):
         """
         return self.process_records("metrics")
 
-    def add_global_tags(self, b_record: bytes) -> Optional[dict]:
+    def add_global_tags(self, b_records: Iterable[bytes]) -> Iterable[dict]:
         """
         Takes a bytes objects that is expected to represent a JSON object,
         casts it to dict and adds global tags to it list of tags.
@@ -64,17 +64,18 @@ class MetricsSender(Sender):
         Also it adds a "host" value if this value is specified.
 
         Args:
-            b_record: Bytes object representing a metric as a JSON object.
-        Returns: Dict representing a metric with updated tags.
+            b_records: Bytes objects representing metrics as JSON objects.
+        Returns: Dicts representing metrics with updated tags.
         """
-        try:
-            d_metric = json.loads(b_record)
-        except (TypeError, json.JSONDecodeError):
-            return None
-        d_metric["tags"] = d_metric.get("tags", []) + self.tags
-        if self.host:
-            d_metric["host"] = self.host
-        return d_metric
+        for b_record in b_records:
+            try:
+                d_metric = json.loads(b_record)
+            except (TypeError, json.JSONDecodeError):
+                continue
+            d_metric["tags"] = d_metric.get("tags", []) + self.tags
+            if self.host:
+                d_metric["host"] = self.host
+            yield d_metric
 
     def dispatch_to_datadog(self, records: List[dict]) -> bool:
         """

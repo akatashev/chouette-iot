@@ -4,7 +4,7 @@ MetricsMerger object that is used in the MetricsAggregator workflow.
 import json
 from functools import reduce
 from itertools import groupby
-from typing import List, Optional, Tuple
+from typing import List, Iterable, Tuple
 
 from ._metrics import MergedMetric
 
@@ -58,9 +58,7 @@ class MetricsMerger:
             interval: Flush interval value.
         Returns: List of MergedMetric objects.
         """
-        single_metrics = filter(
-            None, [cls._cast_to_metric(record, interval) for record in records]
-        )
+        single_metrics = cls._cast_to_merged_metrics(records, interval)
         grouped_metrics = groupby(single_metrics, lambda metric: metric.id)
         merged_metrics = [
             reduce(lambda a, b: a + b, metrics) for _, metrics in grouped_metrics
@@ -68,28 +66,29 @@ class MetricsMerger:
         return merged_metrics
 
     @staticmethod
-    def _cast_to_metric(record: bytes, interval: int) -> Optional[MergedMetric]:
+    def _cast_to_merged_metrics(
+        records: Iterable[bytes], interval: int
+    ) -> Iterable[MergedMetric]:
         """
-        Gets a bytes object and tries to decode to a JSON it and cast it
-        to a MergedMetric object.
-
-        If it can't be casted for some reason, returns None.
+        Generator Function that takes an iterable of bytes and tries to cast
+        these object to MergesMetrics.
 
         Args:
-            record: Bytes object, presumably representing a raw metric.
+            records: Bytes objects, presumably representing raw metrics.
             interval: Flush interval value.
         Return: MergedMetric object or None.
         """
-        try:
-            dict_metric = json.loads(record)
-            merged_metric = MergedMetric(
-                metric=dict_metric["metric"],
-                type=dict_metric["type"],
-                timestamps=[dict_metric["timestamp"]],
-                values=[dict_metric["value"]],
-                tags=dict_metric.get("tags"),
-                interval=interval,
-            )
-        except (json.JSONDecodeError, TypeError, KeyError):
-            return None
-        return merged_metric
+        for record in records:
+            try:
+                dict_metric = json.loads(record)
+                merged_metric = MergedMetric(
+                    metric=dict_metric["metric"],
+                    type=dict_metric["type"],
+                    timestamps=[dict_metric["timestamp"]],
+                    values=[dict_metric["value"]],
+                    tags=dict_metric.get("tags"),
+                    interval=interval,
+                )
+            except (json.JSONDecodeError, TypeError, KeyError):
+                continue
+            yield merged_metric

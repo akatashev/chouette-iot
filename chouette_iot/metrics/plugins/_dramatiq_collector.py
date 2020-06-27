@@ -58,11 +58,11 @@ class DramatiqCollector(StatsCollector):
             sizes: List of tuples ("hash_name", hash_size as int).
         Returns: Iterator over WrappedMetric objects.
         """
-        metrics = [
+        metrics = (
             cls._wrap_metrics(
                 [("Chouette.dramatiq.queue_size", size)],
                 tags={"queue": re.sub(r"^dramatiq:|.msgs$", "", queue)},
             )
             for queue, size in sizes
-        ]
+        )
         return chain.from_iterable(metrics)

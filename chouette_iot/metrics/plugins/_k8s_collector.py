@@ -158,7 +158,7 @@ class K8sCollector(StatsCollector):
             (f"{prefix}.fs.availableBytes", f_system.get("availableBytes")),
             (f"{prefix}.fs.usedBytes", f_system.get("usedBytes")),
         ]
-        collected_metrics = [(name, value) for name, value in stats if value]
+        collected_metrics = ((name, value) for name, value in stats if value)
         return cls._wrap_metrics(collected_metrics, tags=tags)
 
     @classmethod
@@ -177,9 +177,9 @@ class K8sCollector(StatsCollector):
         Returns: Iterator over WrappedMetric objects.
         """
         pods: List[Dict[str, Any]] = raw_metrics.get("pods", [])
-        metrics = [
+        metrics = (
             cls._parse_pod_metrics(pod_metrics, to_collect) for pod_metrics in pods
-        ]
+        )
         return chain.from_iterable(metrics)
 
     @classmethod
@@ -213,7 +213,7 @@ class K8sCollector(StatsCollector):
             (f"{prefix}.network.rxBytes", network.get("rxBytes")),
             (f"{prefix}.network.txBytes", network.get("txBytes")),
         ]
-        collected_metrics = [(name, value) for name, value in stats if value]
+        collected_metrics = ((name, value) for name, value in stats if value)
         return cls._wrap_metrics(collected_metrics, tags=tags)
 
     @staticmethod

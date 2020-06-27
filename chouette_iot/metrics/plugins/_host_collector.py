@@ -51,9 +51,9 @@ class HostCollectorPlugin(CollectorPluginActor):
         }
 
         metrics_to_send = HostCollectorConfig().host_collector_metrics
-        collection_methods = [
+        collection_methods = (
             host_methods.get(method.lower()) for method in metrics_to_send
-        ]
+        )
         self.methods = [method for method in collection_methods if method]
 
     def collect_stats(self) -> Iterator[WrappedMetric]:
@@ -131,7 +131,7 @@ class HostCollector(StatsCollector):
         """
         filesystems = psutil.disk_partitions()
         timestamp = time.time()
-        mapped = [list(cls._process_filesystem(fs, timestamp)) for fs in filesystems]
+        mapped = (list(cls._process_filesystem(fs, timestamp)) for fs in filesystems)
         # Duplication removing hack:
         metrics = iter(set(sum(mapped, [])))
         return metrics
@@ -191,11 +191,11 @@ class HostCollector(StatsCollector):
         Returns: Iterator over WrappedMetric objects.
         """
         interfaces_data = psutil.net_io_counters(pernic=True)
-        metrics = [
+        metrics = (
             cls._process_iface(iface, data)
             for iface, data in interfaces_data.items()
             if iface != "lo"
-        ]
+        )
         return chain.from_iterable(metrics)
 
     @classmethod

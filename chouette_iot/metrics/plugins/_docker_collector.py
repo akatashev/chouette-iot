@@ -162,5 +162,5 @@ class DockerCollector(StatsCollector):
             ("Chouette.docker.cpu.usage", cpu.get("usage_in_kernelmode")),
         ]
         # Filtering possible Nones:
-        collected_metrics = [(name, value) for name, value in stats if value]
+        collected_metrics = ((name, value) for name, value in stats if value)
         return cls._wrap_metrics(collected_metrics, tags=tags)

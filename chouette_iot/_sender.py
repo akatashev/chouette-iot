@@ -2,7 +2,7 @@
 Sender Actor Abstract Class
 """
 import logging
-from typing import Any, List, Optional
+from typing import Any, List, Iterable
 
 import requests
 from requests.exceptions import RequestException
@@ -152,9 +152,9 @@ class Sender(VitalActor):
         request = CollectValues(records_type, keys, wrapped=True)
         b_records = self.storage.ask(request)
         logger.debug("[%s] Collected %s %s.", self.name, len(b_records), records_type)
-        return list(filter(None, map(self.add_global_tags, b_records)))
+        return list(self.add_global_tags(b_records))
 
-    def add_global_tags(self, b_record: bytes) -> Optional[dict]:
+    def add_global_tags(self, b_records: Iterable[bytes]) -> Iterable[dict]:
         """
         Tags should be added for most of the records, but in a slightly
         different way, so this method must be implemented individually.

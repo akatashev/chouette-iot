@@ -82,7 +82,7 @@ class TegrastatsCollector(StatsCollector):
         }
         raw_string = cls._get_raw_metrics_string(path)
         methods = filter(None, map(tegrastats_methods.get, metrics_to_collect))
-        metrics = [method(raw_string) for method in methods]
+        metrics = (method(raw_string) for method in methods)
         return chain.from_iterable(metrics)
 
     @classmethod
@@ -99,14 +99,14 @@ class TegrastatsCollector(StatsCollector):
         """
         pattern = re.compile(r"\b(\w+)@([0-9.]+)C\b")
         stats = re.findall(pattern, raw_string)
-        metrics = [
+        metrics = (
             cls._wrap_metrics(
                 [("Chouette.tegrastats.temperature", float(value))],
                 tags={"zone": zone},
             )
             for zone, value in stats
             if zone != "PMIC"
-        ]
+        )
         return chain.from_iterable(metrics)
 
     @classmethod

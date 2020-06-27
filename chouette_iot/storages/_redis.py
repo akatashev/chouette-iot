@@ -207,7 +207,7 @@ class RedisStorage(SingletonActor):
             return []
         try:
             raw_values = self.redis.hmget(hash_name, *request.keys)
-            values: List[bytes] = list(filter(None, raw_values))
+            values: List[bytes] = [value for value in raw_values if value]
         except RedisError as error:
             logger.warning(
                 "[%s] Could not collect records from a queue '%s' due to: '%s'.",

@@ -4,7 +4,7 @@ LogsSender actor.
 import json
 import logging
 import zlib
-from typing import Any, List, Optional
+from typing import Any, List, Iterable
 
 from chouette_iot_client import ChouetteClient  # type: ignore
 
@@ -53,7 +53,7 @@ class LogsSender(Sender):
         """
         return self.process_records("logs")
 
-    def add_global_tags(self, b_record: bytes) -> Optional[dict]:
+    def add_global_tags(self, b_records: Iterable[bytes]) -> Iterable[dict]:
         """
         Takes a bytes objects that is expected to represent a JSON object,
         casts it to dict and adds global tags to it list of tags.
@@ -61,18 +61,19 @@ class LogsSender(Sender):
         Also it adds a "host" value if this value is specified.
 
         Args:
-            b_record: Bytes object representing a log as a JSON object.
-        Returns: Dict representing a log with updated tags.
+            b_records: Bytes objects representing logs as JSON objects.
+        Returns: Iterable of dicts representing logs with updated tags.
         """
-        try:
-            d_log = json.loads(b_record)
-        except (TypeError, json.JSONDecodeError):
-            return None
-        tags = d_log.get("ddtags", []) + self.tags
-        d_log["ddtags"] = ",".join(tags)
-        if self.host:
-            d_log["host"] = self.host
-        return d_log
+        for b_record in b_records:
+            try:
+                d_log = json.loads(b_record)
+            except (TypeError, json.JSONDecodeError):
+                continue
+            tags = d_log.get("ddtags", []) + self.tags
+            d_log["ddtags"] = ",".join(tags)
+            if self.host:
+                d_log["host"] = self.host
+            yield d_log
 
     def dispatch_to_datadog(self, records: List[dict]) -> bool:
         """
