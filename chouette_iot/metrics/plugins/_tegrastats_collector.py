@@ -102,7 +102,7 @@ class TegrastatsCollector(StatsCollector):
         metrics = [
             cls._wrap_metrics(
                 [("Chouette.tegrastats.temperature", float(value))],
-                tags=[f"zone:{zone}"],
+                tags={"zone": zone},
             )
             for zone, value in stats
             if zone != "PMIC"

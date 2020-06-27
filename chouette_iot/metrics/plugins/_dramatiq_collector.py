@@ -61,7 +61,7 @@ class DramatiqCollector(StatsCollector):
         metrics = [
             cls._wrap_metrics(
                 [("Chouette.dramatiq.queue_size", size)],
-                tags=[f"queue:{re.sub(r'^dramatiq:|.msgs$', '', queue)}"],
+                tags={"queue": re.sub(r"^dramatiq:|.msgs$", "", queue)},
             )
             for queue, size in sizes
         ]

@@ -136,7 +136,7 @@ class K8sCollector(StatsCollector):
         if not node:
             return iter([])
         node_name = node.get("nodeName")
-        tags = [f"node_name:{node_name}"]
+        tags = {"node_name": node_name}
         cpu = node.get("cpu", {}) if "cpu" in to_collect else {}
         ram = node.get("memory", {}) if "ram" in to_collect else {}
         network = node.get("network", {}) if "network" in to_collect else {}
@@ -201,10 +201,7 @@ class K8sCollector(StatsCollector):
         pod_ref: Optional[Dict[str, str]] = pod.get("podRef")
         if not pod_ref:
             return iter([])
-        tags = [
-            f"namespace:{pod_ref.get('namespace')}",
-            f"pod_name:{pod_ref.get('name')}",
-        ]
+        tags = {"namespace": pod_ref["namespace"], "pod_name": pod_ref["name"]}
         cpu = pod.get("cpu", {}) if "cpu" in to_collect else {}
         ram = pod.get("memory", {}) if "memory" in to_collect else {}
         network = pod.get("network", {}) if "network" in to_collect else {}

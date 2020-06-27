@@ -22,7 +22,7 @@ def test_wrap_count():
         type="count",
         value=6,
         timestamp=18,
-        tags=["hello:world"],
+        tags={"hello": "world"},
         interval=10,
     )
     merged_metric = MergedMetric(
@@ -56,14 +56,18 @@ def test_wrap_average(metric_type):
     """
     expected_metrics = [
         WrappedMetric(
-            metric="test", type="gauge", value=2.0, timestamp=18, tags=["hello:world"]
+            metric="test",
+            type="gauge",
+            value=2.0,
+            timestamp=18,
+            tags={"hello": "world"},
         ),
         WrappedMetric(
             metric="test.count",
             type="count",
             value=3,
             timestamp=18,
-            tags=["hello:world"],
+            tags={"hello": "world"},
             interval=15,
         ),
     ]

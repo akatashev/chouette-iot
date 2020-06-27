@@ -86,7 +86,7 @@ class HostCollector(StatsCollector):
         Returns: Iterator over WrappedMetric objects.
         """
         min_1, min_5, min_15 = psutil.getloadavg()
-        m1m = cls._wrap_metrics([("Chouette.host.la", min_1)], tags=["period:1m"])
+        m1m = cls._wrap_metrics([("Chouette.host.la", min_1)], tags={"period": "1m"})
         # m5m = cls._wrap_metrics([("Chouette.host.la", min_5)], tags=["period:5m"])
         # m15m = cls._wrap_metrics([("Chouette.host.la", min_15)], tags=["period:15m"])
         # return chain(m1m, m5m, m15m)
@@ -153,7 +153,7 @@ class HostCollector(StatsCollector):
             filesystem: psutil._common.sdiskpart object.
         Returns: Iterator over WrappedMetric objects.
         """
-        tags = [f"device:{filesystem.device}"]
+        tags = {"device": filesystem.device}
         fs_usage = psutil.disk_usage(filesystem.mountpoint)
         collecting_metrics = [
             ("Chouette.host.fs.used", fs_usage.used),
@@ -208,7 +208,7 @@ class HostCollector(StatsCollector):
             data: `snetio` namedtuple with data about networking.
         Returns: Iterator over WrappedMetric objects.
         """
-        tags = [f"iface:{iface}"]
+        tags = {"iface": iface}
         collecting_metrics = [
             ("Chouette.host.network.bytes.sent", data.bytes_sent),
             ("Chouette.host.network.bytes.recv", data.bytes_recv),

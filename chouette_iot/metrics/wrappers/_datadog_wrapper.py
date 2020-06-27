@@ -89,7 +89,7 @@ class DatadogWrapper(MetricsWrapper):
             metric_type=merged_metric.type,
             timestamp=min(merged_metric.timestamps),
             value=sum(merged_metric.values),
-            tags=merged_metric.s_tags,
+            tags=merged_metric.tags,
             interval=merged_metric.interval,
         )
         return [count_metric]
@@ -113,7 +113,7 @@ class DatadogWrapper(MetricsWrapper):
             metric_type=merged_metric.type,
             timestamp=min(merged_metric.timestamps),
             value=sum(merged_metric.values) / flush_interval,
-            tags=merged_metric.s_tags,
+            tags=merged_metric.tags,
             interval=merged_metric.interval,
         )
         return [rate_metric]
@@ -136,7 +136,7 @@ class DatadogWrapper(MetricsWrapper):
             metric_type=merged_metric.type,
             timestamp=min(merged_metric.timestamps),
             value=value,
-            tags=merged_metric.s_tags,
+            tags=merged_metric.tags,
         )
         return [gauge_metric]
 
@@ -169,7 +169,7 @@ class DatadogWrapper(MetricsWrapper):
                 metric_type="count",
                 timestamp=min(merged_metric.timestamps),
                 value=len(values_set),
-                tags=merged_metric.s_tags,
+                tags=merged_metric.tags,
                 interval=merged_metric.interval,
             )
             return [set_count_metric]
@@ -201,7 +201,7 @@ class DatadogWrapper(MetricsWrapper):
         """
         interval = float(merged_metric.interval)
         timestamp = min(merged_metric.timestamps)
-        tags = merged_metric.s_tags
+        tags = merged_metric.tags
         values = merged_metric.values
         name = merged_metric.metric
         metrics_count = len(values)

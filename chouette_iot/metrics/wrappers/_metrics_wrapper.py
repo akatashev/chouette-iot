@@ -3,7 +3,7 @@ MetricsWrapper abstract class.
 """
 # pylint: disable=too-few-public-methods
 from abc import ABC, abstractmethod
-from typing import List
+from typing import Dict, List
 
 from .._metrics import MergedMetric, WrappedMetric
 
@@ -55,7 +55,7 @@ class MetricsWrapper(ABC):
         metric_type: str,
         timestamp: float,
         value: float,
-        tags: List[str],
+        tags: Dict[str, str],
         interval: int = None,
     ) -> WrappedMetric:
         """
@@ -66,7 +66,7 @@ class MetricsWrapper(ABC):
             metric_type: Type of a metric: 'gauge', 'count', 'rate', 'set' or 'histogram'.
             timestamp: Metric timestamp.
             value: Metric value as a float.
-            tags: Metric tags as a list of strings.
+            tags: Metric tags as a Dict.
             interval: Flash interval value used for some metrics.
         Returns: A WrappedMetric object.
         """

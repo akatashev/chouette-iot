@@ -62,7 +62,7 @@ class SimpleWrapper(MetricsWrapper):
             metric_type=merged_metric.type,
             timestamp=max(merged_metric.timestamps),
             value=sum(merged_metric.values),
-            tags=merged_metric.s_tags,
+            tags=merged_metric.tags,
             interval=merged_metric.interval,
         )
         return [count_metric]
@@ -85,7 +85,7 @@ class SimpleWrapper(MetricsWrapper):
         average = sum(merged_metric.values) / metrics_count
         name = merged_metric.metric
         timestamp = max(merged_metric.timestamps)
-        tags = merged_metric.s_tags
+        tags = merged_metric.tags
         interval = merged_metric.interval
         to_generate = (
             (name, "gauge", timestamp, average, tags, None),

@@ -56,7 +56,7 @@ def test_merged_metric_str_and_repr():
         "type": "count",
         "values": [1],
         "timestamps": [2],
-        "tags": ["test:test"],
+        "tags": {"test": "test"},
         "interval": 10,
     }
 
@@ -114,9 +114,9 @@ def test_wrapped_metric_str_and_repr_with_interval():
     assert repr(metric) == f"<WrappedMetric: {str(metric_dict)}>"
 
 
-def test_simple_metric_gets_timestamp():
+def test_wrapped_metric_gets_timestamp():
     """
-    SimpleMetric instances are expected to get an actual timestamp if
+    WrappedMetric instances are expected to get an actual timestamp if
     it didn't receive a "timestamp" keyword value.
     """
     now = int(time.time())

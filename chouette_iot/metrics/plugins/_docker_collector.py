@@ -156,7 +156,7 @@ class DockerCollector(StatsCollector):
         memory = raw_stats.get("memory_stats", {})
         cpu = raw_stats.get("cpu_stats", {}).get("cpu_usage", {})
         # Generating metrics:
-        tags = [f"container:{container_name}"]
+        tags = {"container": container_name}
         stats = [
             ("Chouette.docker.memory.usage", memory.get("usage")),
             ("Chouette.docker.cpu.usage", cpu.get("usage_in_kernelmode")),

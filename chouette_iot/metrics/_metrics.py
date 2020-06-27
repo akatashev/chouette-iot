@@ -13,7 +13,7 @@ class Metric:
     Base parent class for all the metrics.
     """
 
-    __slots__ = ["metric", "type", "tags"]
+    __slots__ = ["interval", "metric", "type", "tags"]
 
     def asdict(self):  # pragma: no cover
         """
@@ -42,6 +42,20 @@ class Metric:
             return self.asdict() == other.asdict()
         return False
 
+    @staticmethod
+    def _stringify_tags(tags: Dict[str, str]) -> List[str]:
+        """
+        Takes a dict of tags and casts every dict into a line
+        "key:value".
+
+        Returns: List of strings with reformatted tags.
+        """
+        try:
+            tags_list = [f"{name}:{str(value)}" for name, value in tags.items()]
+        except (AttributeError, TypeError, ValueError):
+            tags_list = []
+        return sorted(tags_list)
+
 
 class MergedMetric(Metric):
     """
@@ -63,31 +77,17 @@ class MergedMetric(Metric):
     and tags. Only MergedMetrics with the same id can be merged together.
     """
 
-    __slots__ = ["values", "timestamps", "id", "s_tags", "interval"]
+    __slots__ = ["id", "timestamps", "values"]
 
     def __init__(self, **kwargs: Any):
         self.metric: str = kwargs["metric"]
         self.type: str = kwargs["type"]
         self.values: List[Any] = kwargs.get("values", [])
         self.timestamps: List[float] = kwargs.get("timestamps", [])
-        self.tags: Dict[str, str] = kwargs.get("tags", {})
-        self.s_tags: List[str] = self._stringify_tags(self.tags)
-        self.id: str = f"{self.metric}_{self.type}{'_'.join(self.s_tags)}"
         self.interval = kwargs.get("interval", 10)
-
-    @staticmethod
-    def _stringify_tags(tags: Dict[str, str]) -> List[str]:
-        """
-        Takes a dict of tags and casts every dict into a line
-        "key:value".
-
-        Returns: List of strings with reformatted tags.
-        """
-        try:
-            tags_list = [f"{name}:{str(value)}" for name, value in tags.items()]
-        except (AttributeError, TypeError, ValueError):
-            tags_list = []
-        return sorted(tags_list)
+        tags = kwargs.get("tags")
+        self.tags: Dict[str, str] = tags if tags else {}
+        self.id: str = f"{self.metric}_{self.type}{'_'.join(self._stringify_tags(self.tags))}"
 
     def __add__(self, other: "MergedMetric"):
         """
@@ -118,7 +118,7 @@ class MergedMetric(Metric):
         """
         return {
             "metric": self.metric,
-            "tags": self.s_tags,
+            "tags": self.tags,
             "values": self.values,
             "timestamps": self.timestamps,
             "type": self.type,
@@ -146,17 +146,17 @@ class WrappedMetric(Metric):
     by a developer.
     """
 
-    __slots__ = ["interval", "timestamp", "value"]
+    __slots__ = ["timestamp", "value"]
 
     def __init__(self, **kwargs: Any):
         self.metric = kwargs["metric"]
         self.type = kwargs["type"]
         self.value = kwargs["value"]
-        timestamp = kwargs.get("timestamp")
-        self.timestamp = timestamp if timestamp else time.time()
-        tags = kwargs.get("tags")
-        self.tags: List[str] = sorted(tags) if tags else []
         self.interval: Optional[int] = kwargs.get("interval")
+        timestamp = kwargs.get("timestamp")
+        tags = kwargs.get("tags")
+        self.timestamp = timestamp if timestamp else time.time()
+        self.tags: List[str] = self._stringify_tags(tags) if tags else []
 
     def asdict(self):
         """
