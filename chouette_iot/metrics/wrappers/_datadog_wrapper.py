@@ -3,6 +3,7 @@ Concrete simplified implementation of a Datadog wrapper.
 """
 # pylint: disable=too-few-public-methods
 import math
+from itertools import chain
 from typing import Any, List, Set
 
 from pydantic import BaseSettings  # type: ignore
@@ -72,8 +73,8 @@ class DatadogWrapper(MetricsWrapper):
             return []
         return method(merged_metric)
 
-    @staticmethod
-    def _wrap_count(merged_metric: MergedMetric) -> List[WrappedMetric]:
+    @classmethod
+    def _wrap_count(cls, merged_metric: MergedMetric) -> List[WrappedMetric]:
         """
         Count metric is being simply wrapped into a metric whose value is a
         sum of all the values and whose timestamp is the earliest timestamp
@@ -83,9 +84,9 @@ class DatadogWrapper(MetricsWrapper):
             merged_metric: MergedMetric to wrap.
         Returns: List of WrappedMetric produced by the wrapping method.
         """
-        count_metric = WrappedMetric(
-            metric=merged_metric.metric,
-            type=merged_metric.type,
+        count_metric = cls._create_wrapped_metric(
+            metric_name=merged_metric.metric,
+            metric_type=merged_metric.type,
             timestamp=min(merged_metric.timestamps),
             value=sum(merged_metric.values),
             tags=merged_metric.s_tags,
@@ -107,9 +108,9 @@ class DatadogWrapper(MetricsWrapper):
         Returns: List of WrappedMetric produced by the wrapping method.
         """
         flush_interval = float(merged_metric.interval)
-        rate_metric = WrappedMetric(
-            metric=merged_metric.metric,
-            type=merged_metric.type,
+        rate_metric = cls._create_wrapped_metric(
+            metric_name=merged_metric.metric,
+            metric_type=merged_metric.type,
             timestamp=min(merged_metric.timestamps),
             value=sum(merged_metric.values) / flush_interval,
             tags=merged_metric.s_tags,
@@ -117,8 +118,8 @@ class DatadogWrapper(MetricsWrapper):
         )
         return [rate_metric]
 
-    @staticmethod
-    def _wrap_gauge(merged_metric: MergedMetric) -> List[WrappedMetric]:
+    @classmethod
+    def _wrap_gauge(cls, merged_metric: MergedMetric) -> List[WrappedMetric]:
         """
         Gauge metric sends the latest received value without additional
         calculations. Its timestamp however is the earliest timestamp
@@ -130,17 +131,17 @@ class DatadogWrapper(MetricsWrapper):
         """
         data_pairs = zip(merged_metric.values, merged_metric.timestamps)
         value, _ = max(data_pairs, key=lambda pair: pair[1])
-        gauge_metric = WrappedMetric(
-            metric=merged_metric.metric,
-            type=merged_metric.type,
+        gauge_metric = cls._create_wrapped_metric(
+            metric_name=merged_metric.metric,
+            metric_type=merged_metric.type,
             timestamp=min(merged_metric.timestamps),
             value=value,
             tags=merged_metric.s_tags,
         )
         return [gauge_metric]
 
-    @staticmethod
-    def _wrap_set(merged_metric: MergedMetric) -> List[WrappedMetric]:
+    @classmethod
+    def _wrap_set(cls, merged_metric: MergedMetric) -> List[WrappedMetric]:
         """
         Set metric is expected to have `Lists` in values. There lists
         should represent sets of data. Wrapper takes these lists and
@@ -163,9 +164,9 @@ class DatadogWrapper(MetricsWrapper):
         """
         try:
             values_set: Set[Any] = set(sum(merged_metric.values, []))
-            set_count_metric = WrappedMetric(
-                metric=merged_metric.metric,
-                type="count",
+            set_count_metric = cls._create_wrapped_metric(
+                metric_name=merged_metric.metric,
+                metric_type="count",
                 timestamp=min(merged_metric.timestamps),
                 value=len(values_set),
                 tags=merged_metric.s_tags,
@@ -200,19 +201,19 @@ class DatadogWrapper(MetricsWrapper):
         """
         interval = float(merged_metric.interval)
         timestamp = min(merged_metric.timestamps)
-        tags = merged_metric.tags
+        tags = merged_metric.s_tags
         values = merged_metric.values
         name = merged_metric.metric
         metrics_count = len(values)
-        metrics_to_generate = [
+        metrics_to_generate = (
             (f"{name}.avg", "gauge", sum(values) / metrics_count, None),
             (f"{name}.count", "rate", metrics_count / interval, int(interval)),
             (f"{name}.sum", "gauge", sum(values), None),
             (f"{name}.min", "gauge", min(values), None),
             (f"{name}.max", "gauge", max(values), None),
             (f"{name}.median", "gauge", cls._percentile(values, 0.5), None),
-        ]
-        percentiles_metrics_to_generate = [
+        )
+        percentiles_metrics_to_generate = (
             (
                 f"{name}.{int(percentile * 100)}percentile",
                 "gauge",
@@ -220,18 +221,13 @@ class DatadogWrapper(MetricsWrapper):
                 None,
             )
             for percentile in cls.histogram_percentiles
-        ]
-        metrics_to_generate.extend(percentiles_metrics_to_generate)
+        )
+        to_generate = chain(metrics_to_generate, percentiles_metrics_to_generate)
         generated_metrics = [
-            WrappedMetric(
-                metric=metric_name,
-                type=metric_type,
-                timestamp=timestamp,
-                value=value,
-                tags=tags,
-                interval=interval,
+            cls._create_wrapped_metric(
+                metric_name, metric_type, timestamp, value, tags, interval,
             )
-            for metric_name, metric_type, value, interval in metrics_to_generate
+            for metric_name, metric_type, value, interval in to_generate
             if "percentile" in metric_name
             or metric_name.split(".")[-1] in cls.histogram_aggregates
         ]

@@ -47,3 +47,35 @@ class MetricsWrapper(ABC):
         raise NotImplementedError(
             "Use concrete Wrapper implementation."
         )  # pragma: no cover
+
+    @classmethod
+    def _create_wrapped_metric(
+        cls,
+        metric_name: str,
+        metric_type: str,
+        timestamp: float,
+        value: float,
+        tags: List[str],
+        interval: int = None,
+    ) -> WrappedMetric:
+        """
+        Generates a WrappedMetric object based on provided data.
+
+        Args:
+            metric_name: Name of a metric to be sent.
+            metric_type: Type of a metric: 'gauge', 'count', 'rate', 'set' or 'histogram'.
+            timestamp: Metric timestamp.
+            value: Metric value as a float.
+            tags: Metric tags as a list of strings.
+            interval: Flash interval value used for some metrics.
+        Returns: A WrappedMetric object.
+        """
+        wrapped_metric = WrappedMetric(
+            metric=metric_name,
+            type=metric_type,
+            timestamp=timestamp,
+            value=value,
+            tags=tags,
+            interval=interval,
+        )
+        return wrapped_metric

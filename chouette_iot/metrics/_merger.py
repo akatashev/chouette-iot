@@ -41,10 +41,10 @@ class MetricsMerger:
             flush_interval: Length of a `flush interval` for aggregation.
         Returns: List of lists with grouped metrics keys.
         """
-        groupped_keys_and_ts = groupby(
+        grouped_keys_and_ts = groupby(
             keys_and_ts, lambda record: record[1] // flush_interval
         )
-        keys = [[keys for keys, ts in group[1]] for group in groupped_keys_and_ts]
+        keys = [[keys for keys, ts in group[1]] for group in grouped_keys_and_ts]
         return keys
 
     @classmethod

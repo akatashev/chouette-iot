@@ -46,8 +46,8 @@ class SimpleWrapper(MetricsWrapper):
         metric_type = merged_metric.type
         return methods.get(metric_type, cls._wrap_average)(merged_metric)
 
-    @staticmethod
-    def _wrap_count(merged_metric: MergedMetric) -> List[WrappedMetric]:
+    @classmethod
+    def _wrap_count(cls, merged_metric: MergedMetric) -> List[WrappedMetric]:
         """
         Count metric is being simply wrapped into a metric whose value is a
         sum of all the values and whose timestamp is the latest timestamp
@@ -57,9 +57,9 @@ class SimpleWrapper(MetricsWrapper):
             merged_metric: MergedMetric to wrap.
         Returns: List of WrappedMetric produced by the wrapping method.
         """
-        count_metric = WrappedMetric(
-            metric=merged_metric.metric,
-            type=merged_metric.type,
+        count_metric = cls._create_wrapped_metric(
+            metric_name=merged_metric.metric,
+            metric_type=merged_metric.type,
             timestamp=max(merged_metric.timestamps),
             value=sum(merged_metric.values),
             tags=merged_metric.s_tags,
@@ -67,8 +67,8 @@ class SimpleWrapper(MetricsWrapper):
         )
         return [count_metric]
 
-    @staticmethod
-    def _wrap_average(merged_metric: MergedMetric) -> List[WrappedMetric]:
+    @classmethod
+    def _wrap_average(cls, merged_metric: MergedMetric) -> List[WrappedMetric]:
         """
         Average metric is represented by two WrappedMetrics:
         1. `gauge` type metric whose value is the average of the original
@@ -83,20 +83,12 @@ class SimpleWrapper(MetricsWrapper):
         """
         metrics_count = len(merged_metric.values)
         average = sum(merged_metric.values) / metrics_count
+        name = merged_metric.metric
         timestamp = max(merged_metric.timestamps)
-        average_metric = WrappedMetric(
-            metric=merged_metric.metric,
-            type="gauge",
-            timestamp=timestamp,
-            value=average,
-            tags=merged_metric.s_tags,
+        tags = merged_metric.s_tags
+        interval = merged_metric.interval
+        to_generate = (
+            (name, "gauge", timestamp, average, tags, None),
+            (f"{name}.count", "count", timestamp, metrics_count, tags, interval),
         )
-        count_metric = WrappedMetric(
-            metric=f"{merged_metric.metric}.count",
-            type="count",
-            timestamp=timestamp,
-            value=metrics_count,
-            tags=merged_metric.s_tags,
-            interval=merged_metric.interval,
-        )
-        return [average_metric, count_metric]
+        return [cls._create_wrapped_metric(*metric) for metric in to_generate]
