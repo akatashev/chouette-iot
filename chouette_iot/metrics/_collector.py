@@ -58,9 +58,7 @@ class MetricsCollector(VitalActor):
             storage = StoragesFactory.get_storage(self.storage_type)
             storage.tell(StoreRecords("metrics", message.stats, wrapped=True))
         else:
-            plugins = (
-                PluginsFactory.get_plugin(plugin_name) for plugin_name in self.plugins
-            )
+            plugins = map(PluginsFactory.get_plugin, self.plugins)
             for plugin in filter(None, plugins):  # type: ActorRef
                 logger.info(
                     "[%s] Requesting stats from '%s'.",
