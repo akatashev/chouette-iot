@@ -9,7 +9,7 @@ from typing import Any, List, Iterable
 from chouette_iot_client import ChouetteClient  # type: ignore
 
 from chouette_iot._sender import Sender
-from chouette_iot.storages._redis_messages import GetHashSizes
+from chouette_iot.storage.messages import GetQueueSize
 
 __all__ = ["MetricsSender"]
 
@@ -130,10 +130,8 @@ class MetricsSender(Sender):
 
         Returns: None.
         """
-        # This one is Redis specific. Must be modified if other storages are implemented:
-        queues_sizes = self.storage.ask(
-            GetHashSizes(["chouette:metrics:wrapped.values"])
-        )
-        if queues_sizes:
-            _, metrics_queue_size = queues_sizes.pop()
-            ChouetteClient.gauge("chouette.queued.metrics", metrics_queue_size)
+        # This one is Redis specific. Must be modified if other storage are implemented:
+        size_request = GetQueueSize("metrics", wrapped=True)
+        queue_size = self.storage.ask(size_request)
+        if queue_size > 0:
+            ChouetteClient.gauge("chouette.queued.metrics", queue_size)

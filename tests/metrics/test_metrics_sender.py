@@ -8,7 +8,7 @@ from redis.client import Pipeline
 
 from chouette_iot.metrics import MetricsSender
 from chouette_iot.metrics._metrics import WrappedMetric
-from chouette_iot.storages.messages import StoreRecords, CollectKeys
+from chouette_iot.storage.messages import StoreRecords, CollectKeys
 
 
 @pytest.fixture

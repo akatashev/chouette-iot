@@ -6,8 +6,8 @@ from typing import Any, List, Tuple
 
 from chouette_iot import ChouetteConfig
 from chouette_iot._singleton_actor import VitalActor
-from chouette_iot.storages import StoragesFactory
-from chouette_iot.storages.messages import (
+from chouette_iot.storage import StorageActor
+from chouette_iot.storage.messages import (
     CleanupOutdatedRecords,
     CollectKeys,
     CollectValues,
@@ -86,7 +86,7 @@ class MetricsAggregator(VitalActor):
         Return: Whether all the raw metrics were processed and stored.
         """
         logger.debug("[%s] Cleaning up outdated raw metrics.", self.name)
-        self.storage = StoragesFactory.get_storage(self.storage_type)
+        self.storage = StorageActor.get_instance()
         self._cleanup_outdated_raw_metrics(self.ttl)
         if not self.metrics_wrapper:
             return True

@@ -1,115 +1,44 @@
 """
-Actor that handles all interactions with the Redis storage.
+Storage Engine for Redis storage type.
 """
-# pylint: disable=too-few-public-methods
 import json
 import logging
 import time
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Tuple
 from uuid import uuid4
 
-from pydantic import BaseSettings  # type: ignore
 from redis import Redis, RedisError
 
-from chouette_iot._singleton_actor import SingletonActor
-from ._redis_messages import GetRedisQueues, GetHashSizes
-from .messages import (
+from chouette_iot.configuration import RedisConfig
+from ._storage_engine import StorageEngine
+from ..messages import (
     CleanupOutdatedRecords,
     CollectKeys,
     CollectValues,
     DeleteRecords,
+    GetQueueSize,
     StoreRecords,
 )
 
-__all__ = ["RedisStorage"]
+__all__ = ["RedisEngine"]
 
 logger = logging.getLogger("chouette-iot")
 
 
-class RedisConfig(BaseSettings):
+class RedisEngine(StorageEngine):
     """
-    RedisStorage environment configuration object.
-    Reads Redis' host and port from environment variables if called.
-    """
-
-    redis_host: str = "redis"
-    redis_port: int = 6379
-
-
-class RedisStorage(SingletonActor):
-    """
-    Redis handling Singleton Actor.
-
-    Handles requests to collect, store, and delete different kinds of records
-    from the Redis storage.
-
-    Records themselves are stored in Redis hashes like this: {key: metric body}
-    Their keys are being stored in Sorted Sets sorted by timestamps.
-
-    Records can be `raw` (unprocessed, received from clients) or `wrapped`
-    (prepared to dispatch). They are being stored in different queues.
-
-    The queue for raw metrics is named like this:
-    Sorted set: `chouette:raw:metrics.keys`.
-    Hash: `chouette:raw:metrics.values`.
-
-    This pattern `chouette:(raw/wrapped):(record type).(keys/values)` is used
-    for all the queues.
-
-    Is intentionally expected to be almost always used with `ask` pattern
-    to ensure that consumers always execute their logic in a correct order.
+    Storage engine for Redis storage type.
     """
 
     def __init__(self):
-        """
-        RedisStorage uses RedisConfig to create a Redis object.
-        """
-        super().__init__()
         config = RedisConfig()
         self.redis = Redis(host=config.redis_host, port=config.redis_port)
         # Different versions of Redis use different HSET command formats:
         redis_version = self.redis.info().get("redis_version")
         self.redis_version = int(redis_version.split(".")[0])
+        self.name = "RedisEngine"
 
-    def on_receive(self, message: Any) -> Union[list, bool, None]:
-        """
-        Messages handling routine.
-
-        It takes any message, but it will actively process only valid
-        storage messages from the `chouette.storages.messages` package.
-
-        All other messages do nothing and receive None if `ask` was used
-        to send them.
-
-        Args:
-            message: Anything. Expected to be a valid storage message.
-        Returns: Either a List of bytes or a bool.
-        """
-        logger.debug("[%s] Received %s.", self.name, message)
-        if isinstance(message, CleanupOutdatedRecords):
-            return self._cleanup_outdated(message)
-
-        if isinstance(message, CollectKeys):
-            return self._collect_keys(message)
-
-        if isinstance(message, CollectValues):
-            return self._collect_values(message)
-
-        if isinstance(message, DeleteRecords):
-            return self._delete_records(message)
-
-        if isinstance(message, GetHashSizes):
-            return self._get_hash_sizes(message)
-
-        if isinstance(message, GetRedisQueues):
-            return self._get_redis_queues(message)
-
-        if isinstance(message, StoreRecords):
-            return self._store_records(message)
-
-        return None
-
-    def _cleanup_outdated(self, request: CleanupOutdatedRecords) -> bool:
+    def cleanup_outdated(self, request: CleanupOutdatedRecords) -> bool:
         """
         Cleans up outdated records in a specified queue.
 
@@ -151,7 +80,7 @@ class RedisStorage(SingletonActor):
             return False
         return True
 
-    def _collect_keys(self, request: CollectKeys) -> List[Tuple[bytes, int]]:
+    def collect_keys(self, request: CollectKeys) -> List[Tuple[bytes, int]]:
         """
         Tries to collect keys from a specified queue.
 
@@ -186,7 +115,7 @@ class RedisStorage(SingletonActor):
         )
         return keys
 
-    def _collect_values(self, request: CollectValues) -> List[bytes]:
+    def collect_values(self, request: CollectValues) -> List[bytes]:
         """
         Tries to collect values by keys from a specified queue.
 
@@ -224,7 +153,7 @@ class RedisStorage(SingletonActor):
         )
         return values
 
-    def _delete_records(self, request: DeleteRecords) -> bool:
+    def delete_records(self, request: DeleteRecords) -> bool:
         """
         Tries to delete records with specified keys.
 
@@ -260,51 +189,32 @@ class RedisStorage(SingletonActor):
         )
         return True
 
-    def _get_hash_sizes(self, request: GetHashSizes) -> List[Tuple[str, int]]:
+    def get_queue_size(self, request: GetQueueSize) -> int:
         """
-        Returns a list of tuples with hashes names and sizes.
+        Tried to get a size of a specified queue.
+
+        In case of error returns -1, because values less than 1 SHOULD be
+        filtered. 0 usually means that this queue doesn't exist, so we can't
+        really talk about it size.
 
         Args:
-            request: GetHashSizes message with a list of hashes.
-        Return: List of tuples with hashes names and sizes.
+            request: GetQueueSize message.
+        Returns: Size of a specified queue.
         """
+        queue_name, _, hash_name = self._get_queue_names(request)
         try:
-            hash_sizes = [
-                (
-                    hash_name.decode() if isinstance(hash_name, bytes) else hash_name,
-                    int(self.redis.hlen(hash_name)),
-                )
-                for hash_name in request.hashes
-            ]
+            queue_size = int(self.redis.hlen(hash_name))
         except RedisError as error:
             logger.warning(
-                "[%s] Could not calculate hash sizes due to: '%s'.", self.name, error
-            )
-            return []
-        return hash_sizes
-
-    def _get_redis_queues(self, request: GetRedisQueues) -> List[bytes]:
-        """
-        Gets a list of Redis Keys (sets, hashes, lists, etc) using a specified
-        key name pattern.
-
-        Args:
-            request: GetRedisKeys message with a specified pattern.
-        Returns: List of found Redis Keys.
-        """
-        try:
-            redis_keys = self.redis.keys(request.pattern)
-        except RedisError as error:
-            logger.warning(
-                "[%s] Could not collect Redis keys for a pattern %s due to: '%s'.",
+                "[%s] Could not calculate %s queue size due to: '%s'.",
                 self.name,
-                request.pattern,
+                queue_name,
                 error,
             )
-            return []
-        return redis_keys
+            return -1
+        return queue_size
 
-    def _store_records(self, request: StoreRecords) -> bool:
+    def store_records(self, request: StoreRecords) -> bool:
         """
         Tries to store received records to a queue.
 

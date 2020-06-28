@@ -9,12 +9,12 @@ from requests.exceptions import RequestException
 
 from chouette_iot import ChouetteConfig
 from chouette_iot._singleton_actor import VitalActor
-from chouette_iot.storages import StoragesFactory
-from chouette_iot.storages.messages import (
+from chouette_iot.storage import StorageActor
+from chouette_iot.storage.messages import (
     CleanupOutdatedRecords,
     DeleteRecords,
 )
-from chouette_iot.storages.messages import (
+from chouette_iot.storage.messages import (
     CollectKeys,
     CollectValues,
 )
@@ -55,8 +55,7 @@ class Sender(VitalActor):
         self.host = config.host
         self.datadog_url = config.datadog_url
         self.send_self_metrics = config.send_self_metrics
-        self.storage_type = config.storage_type
-        self.storage = StoragesFactory.get_storage(self.storage_type)
+        self.storage = StorageActor.get_instance()
         self.tags = config.global_tags
         self.timeout = int(config.release_interval * 0.8)
         self.ttl = 14400  # Just to calm down the typing system.
@@ -88,7 +87,7 @@ class Sender(VitalActor):
             records_type: Type of data to process. E.g. logs, metrics.
         Returns: Whether data was dispatched and cleaned successfully.
         """
-        self.storage = StoragesFactory.get_storage(self.storage_type)
+        self.storage = StorageActor.get_instance()
         self.cleanup_outdated_records(records_type, self.ttl)
         keys = self.collect_keys(records_type)
         if not keys:

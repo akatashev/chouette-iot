@@ -6,7 +6,7 @@ from typing import List
 
 from pydantic import BaseSettings  # type: ignore
 
-__all__ = ["ChouetteConfig"]
+__all__ = ["ChouetteConfig", "RedisConfig"]
 
 
 class ChouetteConfig(BaseSettings):
@@ -34,3 +34,13 @@ class ChouetteConfig(BaseSettings):
     release_interval: int = 60
     send_self_metrics: bool = True
     storage_type: str = "redis"
+
+
+class RedisConfig(BaseSettings):
+    """
+    RedisStorage environment configuration object.
+    Reads Redis' host and port from environment variables if called.
+    """
+
+    redis_host: str = "redis"
+    redis_port: int = 6379

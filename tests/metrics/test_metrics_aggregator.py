@@ -7,8 +7,9 @@ import pytest
 from pykka import ActorRegistry
 
 from chouette_iot.metrics import MetricsAggregator
-from chouette_iot.storages import RedisStorage
-from chouette_iot.storages.messages import CollectKeys, CollectValues
+from chouette_iot.storage import StorageActor
+from chouette_iot.storage.engines._redis_engine import RedisEngine
+from chouette_iot.storage.messages import CollectKeys, CollectValues
 
 
 @pytest.fixture
@@ -48,7 +49,7 @@ def redis_with_raw_metrics(redis_cleanup, redis_client):
         pipeline.zadd(f"{queue_name}.keys", {key: ts})
         pipeline.hset(f"{queue_name}.values", key, json.dumps(metric))
     pipeline.execute()
-    redis = RedisStorage.get_instance()
+    redis = StorageActor.get_instance()
     return redis
 
 
@@ -67,7 +68,7 @@ def test_aggregator_without_merger_drops_messages(monkeypatch):
     monkeypatch.setenv("GLOBAL_TAGS", '["chouette-iot:est:chouette-iot"]')
     monkeypatch.setenv("METRICS_WRAPPER", "none")
     aggregator_ref = MetricsAggregator.start()
-    with patch.object(RedisStorage, "_collect_keys") as collect_keys:
+    with patch.object(RedisEngine, "collect_keys") as collect_keys:
         result = aggregator_ref.ask("aggregate")
     assert result is True
     proxy = aggregator_ref.proxy()
@@ -85,8 +86,8 @@ def test_aggregator_outdated_values(aggregator_ref, stored_raw_values, stored_ra
     AND: Its collect_keys method is executed but it returns an empty list.
     AND: Its collect_values method is not executed.
     """
-    with patch.object(RedisStorage, "_collect_keys") as collect_keys:
-        with patch.object(RedisStorage, "_collect_values") as collect_values:
+    with patch.object(RedisEngine, "collect_keys") as collect_keys:
+        with patch.object(RedisEngine, "collect_values") as collect_values:
             result = aggregator_ref.ask("aggregate")
     assert result
     collect_keys.assert_called()
@@ -132,8 +133,8 @@ def test_aggregator_storing_failed(aggregator_ref, redis_with_raw_metrics):
     AND: Raw metrics are not being cleaned up.
     """
 
-    with patch.object(RedisStorage, "_store_records", return_value=False):
-        with patch.object(RedisStorage, "_delete_records") as delete_records:
+    with patch.object(RedisEngine, "store_records", return_value=False):
+        with patch.object(RedisEngine, "delete_records") as delete_records:
             result = aggregator_ref.ask("aggregate")
     assert result is False
     stored_keys = redis_with_raw_metrics.ask(CollectKeys("metrics", wrapped=False))
@@ -153,6 +154,6 @@ def test_aggregator_cleanup_failed(aggregator_ref, redis_with_raw_metrics):
     WHEN: MetricsAggregator receives a message.
     THEN: It returns False.
     """
-    with patch.object(RedisStorage, "_delete_records", return_value=False):
+    with patch.object(RedisEngine, "delete_records", return_value=False):
         result = aggregator_ref.ask("aggregate")
     assert result is False

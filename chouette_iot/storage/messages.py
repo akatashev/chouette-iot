@@ -1,5 +1,5 @@
 """
-chouette.storages.messages module
+chouette.storage.messages module
 
 This file describes objects that other actors should use as messages to
 communicate to Storage actors.
@@ -16,6 +16,7 @@ __all__ = [
     "CleanupOutdatedRecords",
     "CollectKeys",
     "CollectValues",
+    "GetQueueSize",
     "DeleteRecords",
     "StoreRecords",
 ]
@@ -174,3 +175,20 @@ class StoreRecords:
             f"<{self.__class__.__name__}:{self.data_type}:"
             f"wrapped={self.wrapped}:records_number={len(self.records)}>"
         )
+
+
+class GetQueueSize:
+    """
+    This message initiates checking how many records are waiting in a queue.
+    """
+
+    __slots__ = ["data_type", "wrapped"]
+
+    def __init__(self, data_type: str, wrapped: bool):
+        """
+        Args:
+            data_type: Type of data to store. E.g.: 'metrics'.
+            wrapped: Whether a Storage should check a size of a wrapped queue.
+        """
+        self.data_type = data_type
+        self.wrapped = wrapped

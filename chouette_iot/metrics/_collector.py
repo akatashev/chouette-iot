@@ -8,8 +8,8 @@ from pykka import ActorRef  # type: ignore
 
 from chouette_iot import ChouetteConfig
 from chouette_iot._singleton_actor import VitalActor
-from chouette_iot.storages import StoragesFactory
-from chouette_iot.storages.messages import StoreRecords
+from chouette_iot.storage import StorageActor
+from chouette_iot.storage.messages import StoreRecords
 from .plugins import PluginsFactory
 from .plugins.messages import StatsRequest, StatsResponse
 
@@ -32,7 +32,6 @@ class MetricsCollector(VitalActor):
         super().__init__()
         config = ChouetteConfig()
         self.plugins = config.collector_plugins
-        self.storage_type = config.storage_type
         logger.info(
             "[%s] Starting. Configured collection plugins are: '%s'.",
             self.name,
@@ -55,7 +54,7 @@ class MetricsCollector(VitalActor):
         if isinstance(message, StatsResponse):
             sender = message.producer
             logger.info("[%s] Storing collected stats from '%s'.", self.name, sender)
-            storage = StoragesFactory.get_storage(self.storage_type)
+            storage = StorageActor.get_instance()
             storage.tell(StoreRecords("metrics", message.stats, wrapped=True))
         else:
             plugins = map(PluginsFactory.get_plugin, self.plugins)

@@ -6,8 +6,8 @@ from pykka import ActorRegistry
 from chouette_iot.metrics import MetricsCollector
 from chouette_iot.metrics.plugins import PluginsFactory
 from chouette_iot.metrics.plugins.messages import StatsResponse
-from chouette_iot.storages import RedisStorage
-from chouette_iot.storages.messages import StoreRecords
+from chouette_iot.storage import StorageActor
+from chouette_iot.storage.messages import StoreRecords
 
 
 @pytest.fixture
@@ -73,7 +73,7 @@ def test_collector_stores_metrics_to_redis(collector_ref, test_actor):
     AND: Its data_type property is 'metrics'.
     """
     stats = ["stat1", "stat2", "stat3"]
-    with patch.object(RedisStorage, "get_instance", return_value=test_actor):
+    with patch.object(StorageActor, "get_instance", return_value=test_actor):
         collector_ref.ask(StatsResponse("Unit-Test", stats))
     messages = test_actor.ask("messages")
     assert len(messages) == 1

@@ -9,7 +9,7 @@ from redis import RedisError
 from redis.client import Pipeline
 
 from chouette_iot.logs import LogsSender
-from chouette_iot.storages.messages import CollectKeys
+from chouette_iot.storage.messages import CollectKeys
 
 
 @pytest.fixture
