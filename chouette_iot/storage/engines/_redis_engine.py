@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from redis import Redis, RedisError
 
-from chouette_iot.configuration import RedisConfig
+from pydantic import BaseSettings
 from ._storage_engine import StorageEngine
 from ..messages import (
     CleanupOutdatedRecords,
@@ -23,6 +23,16 @@ from ..messages import (
 __all__ = ["RedisEngine"]
 
 logger = logging.getLogger("chouette-iot")
+
+
+class RedisConfig(BaseSettings):
+    """
+    RedisStorage environment configuration object.
+    Reads Redis' host and port from environment variables if called.
+    """
+
+    redis_host: str = "redis"
+    redis_port: int = 6379
 
 
 class RedisEngine(StorageEngine):
