@@ -76,7 +76,7 @@ class MetricsMerger:
         Args:
             records: Bytes objects, presumably representing raw metrics.
             interval: Flush interval value.
-        Return: MergedMetric object or None.
+        Return: Iterable of MergedMetric instances.
         """
         for record in records:
             try:

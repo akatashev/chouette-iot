@@ -113,12 +113,10 @@ class MetricsSender(Sender):
             int(message_size / 1024),
         )
         dispatched = self._post_to_datadog(compressed_message, "v1/series")
-        if not dispatched:
-            return False
-        if self.send_self_metrics:
+        if dispatched and self.send_self_metrics:
             ChouetteClient.count("chouette.dispatched.metrics.number", metrics_num)
             ChouetteClient.count("chouette.dispatched.metrics.bytes", message_size)
-        return True
+        return dispatched
 
     def store_queue_size(self) -> None:
         """

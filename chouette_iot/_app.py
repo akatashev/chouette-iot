@@ -82,9 +82,8 @@ class Chouette:
             cls.schedule_call(config.aggregate_interval, MetricsAggregator, "aggregate")
         )
         # Collector actor:
-        if not config.collector_plugins:
-            return timers
-        timers.append(
-            cls.schedule_call(config.capture_interval, MetricsCollector, "collect")
-        )
+        if config.collector_plugins:
+            timers.append(
+                cls.schedule_call(config.capture_interval, MetricsCollector, "collect")
+            )
         return timers

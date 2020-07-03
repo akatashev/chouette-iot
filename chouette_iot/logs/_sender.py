@@ -104,9 +104,7 @@ class LogsSender(Sender):
             int(message_size / 1024),
         )
         dispatched = self._post_to_datadog(compressed_message, "v1/input")
-        if not dispatched:
-            return False
-        if self.send_self_metrics:
+        if dispatched and self.send_self_metrics:
             ChouetteClient.count("chouette.dispatched.logs.number", logs_num)
             ChouetteClient.count("chouette.dispatched.logs.bytes", message_size)
-        return True
+        return dispatched
