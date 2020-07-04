@@ -177,9 +177,12 @@ class K8sCollector(StatsCollector):
         Returns: Iterator over WrappedMetric objects.
         """
         pods: List[Dict[str, Any]] = raw_metrics.get("pods", [])
-        metrics = (
+        metrics = [
             cls._parse_pod_metrics(pod_metrics, to_collect) for pod_metrics in pods
-        )
+        ]
+        if pods:
+            pods_running = cls._wrap_metrics([("Chouette.k8s.pods.running", len(pods))])
+            metrics.append(pods_running)
         return chain.from_iterable(metrics)
 
     @classmethod

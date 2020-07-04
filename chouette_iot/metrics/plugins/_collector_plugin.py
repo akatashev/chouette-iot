@@ -5,7 +5,7 @@ import logging
 
 # pylint: disable=too-few-public-methods
 from abc import ABC
-from typing import Dict, Generator, Iterator, Iterable, Optional, Tuple
+from typing import Dict, Generator, Iterator, Iterable, Optional, Tuple, Union
 
 from pykka import ActorDeadError  # type: ignore
 
@@ -59,7 +59,7 @@ class StatsCollector(ABC):
 
     @staticmethod
     def _wrap_metrics(
-        metrics: Iterable[Tuple[str, float]],
+        metrics: Iterable[Tuple[str, Union[int, float]]],
         timestamp: float = None,
         tags: Optional[Dict[str, str]] = None,
         metric_type: str = "gauge",

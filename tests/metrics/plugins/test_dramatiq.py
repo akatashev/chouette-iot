@@ -68,7 +68,7 @@ def test_dramatiq_collector_reads_queues_names(dramatiq_queue):
     THEN: A list of queues names is returned.
     """
     queues_names = DramatiqCollector._get_queues_names("dramatiq:*.msgs")
-    assert queues_names == [b'dramatiq:fake.msgs']
+    assert queues_names == [b"dramatiq:fake.msgs"]
 
 
 def test_dramatiq_collector_reads_queues_names_redis_error():
@@ -92,8 +92,8 @@ def test_dramatiq_collector_returns_queues_sizes(dramatiq_queue):
     WHEN: _get_queues_sizes method is called with a list of valid queues names.
     THEN: A list of tuples with correct queues names and theirs sizes is returned.
     """
-    queues_sizes = DramatiqCollector._get_queues_sizes([b'dramatiq:fake.msgs'])
-    assert queues_sizes == [('dramatiq:fake.msgs', 2)]
+    queues_sizes = DramatiqCollector._get_queues_sizes([b"dramatiq:fake.msgs"])
+    assert queues_sizes == [("dramatiq:fake.msgs", 2)]
 
 
 def test_dramatiq_collector_returns_queue_sizes_redis_error(dramatiq_queue):
@@ -105,7 +105,7 @@ def test_dramatiq_collector_returns_queue_sizes_redis_error(dramatiq_queue):
     THEN: An empty list is returned.
     """
     with patch.object(Redis, "execute_command", side_effect=RedisError):
-        queue_sizes = DramatiqCollector._get_queues_sizes([b'dramatiq:fake.msgs'])
+        queue_sizes = DramatiqCollector._get_queues_sizes([b"dramatiq:fake.msgs"])
     assert queue_sizes == []
 
 

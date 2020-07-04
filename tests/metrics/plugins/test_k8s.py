@@ -159,16 +159,22 @@ def test_k8s_plugin_parses_pods_stats(k8s_stats_response):
     WHEN: This dict is passed to the `_parse_pods_metrics` method.
     THEN: It returns an iterator over WrappedMetric objects.
     AND: There are metrics for every pod on the node.
+    AND: There is a pods.running metric that shows the number of running pods.
     """
     k8s_response = json.loads(k8s_stats_response)
     pods_stats = list(
         K8sCollector._parse_pods_metrics(k8s_response, ["memory", "network"])
     )
     assert all(isinstance(stat, WrappedMetric) for stat in pods_stats)
+    pods_running = next(
+        stat for stat in pods_stats if stat.metric == "Chouette.k8s.pods.running"
+    )
+    assert pods_running.value == 1
     assert all(
         stat.tags
         == sorted(["pod_name:coredns-588fd544bf-8btq7", "namespace:kube-system"])
         for stat in pods_stats
+        if stat.metric != "Chouette.k8s.pods.running"
     )
 
 

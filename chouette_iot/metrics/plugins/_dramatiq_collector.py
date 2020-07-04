@@ -113,7 +113,9 @@ class DramatiqCollector(StatsCollector):
         return hash_sizes
 
     @classmethod
-    def _wrap_queues_sizes(cls, sizes: Iterable[Tuple[str, int]]) -> Iterator[WrappedMetric]:
+    def _wrap_queues_sizes(
+        cls, sizes: Iterable[Tuple[str, int]]
+    ) -> Iterator[WrappedMetric]:
         """
         Wraps received hashes sizes into WrappedMetrics.
 

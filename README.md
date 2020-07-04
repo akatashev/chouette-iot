@@ -45,7 +45,7 @@ E.g.: There is no need to send total amount of RAM and percentage of used RAM, b
 * K8sCollector - collects data about pods RAM and CPU usage. Optionally - node related data.
 * TegrastatsCollector - collects data about Nvidia Jetson (like GPU temperature) using Nvidia's [tegrastats](https://docs.nvidia.com/jetson/l4t/index.html#page/Tegra%2520Linux%2520Driver%2520Package%2520Development%2520Guide%2FAppendixTegraStats.html%23) Utility.
 
-Plugins have their README.md with detailed description in the folder `chouette/metrics/plugins`.
+Collector plugins are described in the `docs/COLLECTOR_PLUGINS.md` file.
 
 ## Configuration
 
