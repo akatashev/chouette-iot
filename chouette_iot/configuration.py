@@ -6,7 +6,7 @@ from typing import List
 
 from pydantic import BaseSettings  # type: ignore
 
-__all__ = ["ChouetteConfig", "RedisConfig"]
+__all__ = ["ChouetteConfig"]
 
 
 class ChouetteConfig(BaseSettings):
@@ -33,4 +33,4 @@ class ChouetteConfig(BaseSettings):
     metrics_wrapper: str = "datadog"
     release_interval: int = 60
     send_self_metrics: bool = True
-    storage_type: str = "redis"
+    chouette_storage_type: str = "redis"

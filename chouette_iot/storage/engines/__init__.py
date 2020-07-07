@@ -5,6 +5,7 @@ Storage Engines Factory
 from typing import Dict, Type
 
 from ._redis_engine import RedisEngine
+from ._sqlite_engine import SQLiteEngine
 from ._storage_engine import StorageEngine
 
 __all__ = ["EnginesFactory"]
@@ -15,7 +16,10 @@ class EnginesFactory:
     Storage Engines factory tries to generate a specified storage engine.
     """
 
-    storage_classes: Dict[str, Type[StorageEngine]] = {"redis": RedisEngine}
+    storage_classes: Dict[str, Type[StorageEngine]] = {
+        "redis": RedisEngine,
+        "sqlite": SQLiteEngine,
+    }
 
     @classmethod
     def get_engine(cls, storage_type: str) -> StorageEngine:

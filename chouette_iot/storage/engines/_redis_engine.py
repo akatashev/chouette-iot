@@ -7,9 +7,9 @@ import time
 from typing import Any, List, Tuple
 from uuid import uuid4
 
+from pydantic import BaseSettings
 from redis import Redis, RedisError
 
-from pydantic import BaseSettings
 from ._storage_engine import StorageEngine
 from ..messages import (
     CleanupOutdatedRecords,
@@ -46,7 +46,13 @@ class RedisEngine(StorageEngine):
         # Different versions of Redis use different HSET command formats:
         redis_version = self.redis.info().get("redis_version")
         self.redis_version = int(redis_version.split(".")[0])
-        self.name = "RedisEngine"
+        self.name = self.__class__.__name__
+
+    def stop(self):
+        """
+        Tries to release connections to Redis if there are any.
+        """
+        self.redis.close()
 
     def cleanup_outdated(self, request: CleanupOutdatedRecords) -> bool:
         """
@@ -82,7 +88,7 @@ class RedisEngine(StorageEngine):
             )
         except RedisError as error:
             logger.warning(
-                "[%s] Could not cleanup records in a queue '%s' due to: '%s'.",
+                "[%s] Could not cleanup outdated records in a queue '%s' due to: '%s'.",
                 self.name,
                 queue_name,
                 error,
@@ -268,7 +274,7 @@ class RedisEngine(StorageEngine):
             pipeline.execute()
         except (RedisError, TypeError) as error:
             logger.warning(
-                "[%s] Could not store %s/%s records to queue '%s' due to: '%s'.",
+                "[%s] Could not store %s/%s records to a queue '%s' due to: '%s'.",
                 self.name,
                 stored_metrics,
                 len(records_list),

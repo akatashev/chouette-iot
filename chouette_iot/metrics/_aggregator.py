@@ -57,7 +57,7 @@ class MetricsAggregator(VitalActor):
         self.flush_interval = config.aggregate_interval
         self.ttl = config.metric_ttl
         self.metrics_wrapper = WrappersFactory.get_wrapper(config.metrics_wrapper)
-        self.storage_type = config.storage_type
+        self.storage_type = config.chouette_storage_type
         self.storage = None
 
         if not self.metrics_wrapper:

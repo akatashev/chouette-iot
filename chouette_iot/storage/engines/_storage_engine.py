@@ -2,7 +2,7 @@
 Interface definition for all the Storage Engine implementations.
 """
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from ..messages import (
     CleanupOutdatedRecords,
@@ -20,6 +20,15 @@ class StorageEngine(ABC):
     """
     Interface for all Storage Engine implementations.
     """
+
+    @abstractmethod
+    def stop(self) -> None:
+        """
+        Stops DB connections and other leftovers.
+        """
+        raise NotImplementedError(
+            "Use a concrete StorageEngine class."
+        )  # pragma: no cover
 
     @abstractmethod
     def cleanup_outdated(self, request: CleanupOutdatedRecords) -> bool:
@@ -60,7 +69,7 @@ class StorageEngine(ABC):
     @abstractmethod
     def get_queue_size(self, request: GetQueueSize) -> int:
         """
-        Tried to get a size of a specified queue.
+        Tries to get a size of a specified queue.
         """
         raise NotImplementedError(
             "Use a concrete StorageEngine class."

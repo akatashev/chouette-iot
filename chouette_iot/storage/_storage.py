@@ -48,7 +48,8 @@ class StorageActor(SingletonActor):
 
     def __init__(self):
         super().__init__()
-        self.storage = EnginesFactory.get_engine(ChouetteConfig().storage_type)
+        storage_type = ChouetteConfig().chouette_storage_type
+        self.storage = EnginesFactory.get_engine(storage_type)
 
     def on_receive(self, message: Any) -> Union[int, list, bool, None]:
         """
@@ -84,3 +85,19 @@ class StorageActor(SingletonActor):
             return self.storage.store_records(message)
 
         return None
+
+    def on_stop(self):
+        """
+        Tries to gracefully stop Storage Engine before stopping
+        in a normal stop scenario.
+        """
+        self.storage.stop()
+        super(StorageActor, self).on_stop()
+
+    def on_failure(self, exception_type: str, exception_value: str, traceback) -> None:
+        """
+        Tries to gracefully stop Storage Engine before stopping
+        in an exception stop scenario.
+        """
+        self.storage.stop()
+        super(StorageActor, self).on_failure(exception_type, exception_value, traceback)

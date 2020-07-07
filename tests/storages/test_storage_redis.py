@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from redis import Redis, RedisError
+from pykka import ActorRegistry
 from redis.client import Pipeline
 
 import chouette_iot.storage.messages as msgs
@@ -15,12 +16,12 @@ from chouette_iot.storage import StorageActor
 def storage_actor_redis(monkeypatch):
     """
     Redis actor fixture.
-    Since StorageActor actor is stateless, scope of the fixture is module.
     """
+    ActorRegistry.stop_all()
     monkeypatch.setenv("API_KEY", "whatever")
     monkeypatch.setenv("GLOBAL_TAGS", '["chouette-iot:est:chouette-iot"]')
     monkeypatch.setenv("METRICS_WRAPPER", "simple")
-    monkeypatch.setenv("STORAGE_TYPE", "redis")
+    monkeypatch.setenv("CHOUETTE_STORAGE_TYPE", "redis")
     actor_ref = StorageActor.get_instance()
     yield actor_ref
     actor_ref.stop()
