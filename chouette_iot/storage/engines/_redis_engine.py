@@ -48,6 +48,12 @@ class RedisEngine(StorageEngine):
         self.redis_version = int(redis_version.split(".")[0])
         self.name = "RedisEngine"
 
+    def stop(self) -> None:
+        """
+        Tries to stop Redis connection.
+        """
+        self.redis.close()
+
     def cleanup_outdated(self, request: CleanupOutdatedRecords) -> bool:
         """
         Cleans up outdated records in a specified queue.

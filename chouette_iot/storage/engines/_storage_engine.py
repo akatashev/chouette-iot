@@ -22,6 +22,15 @@ class StorageEngine(ABC):
     """
 
     @abstractmethod
+    def stop(self):
+        """
+        Stops a storage.
+        """
+        raise NotImplementedError(
+            "Use a concrete StorageEngine class."
+        )  # pragma: no cover
+
+    @abstractmethod
     def cleanup_outdated(self, request: CleanupOutdatedRecords) -> bool:
         """
         Cleans up outdated records in a specified queue.
